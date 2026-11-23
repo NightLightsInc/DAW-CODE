@@ -646,20 +646,6 @@ document.getElementById('btnAddTrack').addEventListener('click', () => createTra
 createTrack('Vocals (Mic)', '#2d8cff');
 createTrack('Instrumental / Beat', '#9b59b6');
 })();
-
-
-
-### Key Features Included
-* **Real-Time Live Waveforms:** Draws red sound waves across the timeline in real time while recording from your microphone, then converts them into a high-resolution track waveform once stopped.
-* **Multi-Track Arrangement & Controls:** Includes **Arm (`R`)**, **Mute (`M`)**, **Solo (`S`)**, Volume, and Pan sliders per track.
-* **Built-In Beat Generator & Audio Import:** Load any MP3/WAV beat onto a track or click **Add Synth Beat** to generate a 4-bar drum loop with visible waveforms.
-* **Webador Iframe Note:** When embedding on Webador via an `<iframe>`, add `allow="microphone"` to the iframe tag (`<iframe src="YOUR_URL" allow="microphone" width="100%" height="650"></iframe>`) so the browser permits mic access.
-
-<FollowUp>
-Would you like me to add **drag-and-drop clip moving/trimming** or **built-in vocal effects** (like reverb and delay) to this DAW code?
-</FollowUp>
-Try without personalization
-
 header.querySelector('.track-name').addEventListener('change', (e) => track.name = e.target.value);
 header.querySelector('.arm').addEventListener('click', () => {
 tracks.forEach(t => t.armed = false);
