@@ -50,6 +50,13 @@ input[type=file]{display:none}
 .clipdel{position:absolute;top:2px;right:2px;z-index:2;padding:0 6px;font-size:12px;line-height:16px;background:rgba(0,0,0,.6)}
 .takes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .chip{display:inline-flex;gap:4px}
+.synthEd{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.synthEd[hidden]{display:none}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:12px}
+.pc{display:flex;flex-direction:column;font-size:12px;color:var(--dim);gap:4px}
+.pc input,.pc select,.synthEd select{accent-color:var(--lamp);font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+.keys{display:flex;gap:4px;margin-top:12px;flex-wrap:wrap}
+.keys button{padding:6px 0;width:44px}
 .clip .cl{position:absolute;left:6px;top:4px;font-size:11px;color:#fff;background:rgba(0,0,0,.5);padding:1px 6px;border-radius:4px;pointer-events:none;z-index:1}
 .ph{position:absolute;top:0;bottom:0;width:2px;background:var(--cyan);z-index:4;pointer-events:none}
 section.beat{padding:16px 20px 28px}
@@ -118,17 +125,22 @@ kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;font:inherit;co
       <button id="newKit">New kit</button>
       <button id="renameKit">Rename kit</button>
       <label class="btn" for="kitFiles">Load samples</label>
+      <select id="instSel" aria-label="Instrument"></select>
+      <button id="addInst">Add instrument</button>
       <button id="addChannel">Add channel</button>
       <button id="saveKit">Save kit</button>
       <label class="btn" for="kitFolder">Add kit from computer</label>
+      <label class="btn" for="presetJson">Import preset</label>
       <label class="btn" for="kitJson">Open kit</label>
       <span id="kitMsg"></span>
     </div>
     <div id="beat"></div>
+    <div id="synthEd" class="synthEd" hidden></div>
     <input id="kitFiles" type="file" accept="audio/*" multiple hidden>
     <input id="voiceFile" type="file" accept="audio/*" hidden>
     <input id="kitJson" type="file" accept=".json,application/json" hidden>
     <input id="kitFolder" type="file" accept="audio/*" webkitdirectory multiple hidden>
+    <input id="presetJson" type="file" accept=".json,application/json" hidden>
     <div class="bar">
       <button id="clear">Clear pattern</button>
       <button id="demo">Load night drive</button>
@@ -216,12 +228,13 @@ function voice(v, vol, s, t, slot, r) {
   const out = ctx.createGain(); out.gain.value = vol;
   const pan = ctx.createStereoPanner(); pan.pan.value = bpan[r] || 0;
   out.connect(pan); pan.connect(master);
-  if (slot) { const src = ctx.createBufferSource(); src.buffer = slot.buf; src.playbackRate.value = Math.pow(2, (bpitch[r] || 0) / 12); src.connect(out); src.start(t); return; }
+  if (slot) { const src = ctx.createBufferSource(); src.buffer = slot.buf; src.playbackRate.value = Math.pow(2, (bpitch[r] || 0) / 12) * (slot.root ? v.f / slot.root : 1); src.connect(out); src.start(t); return; }
   switch (v.kind) {
     case 'kick':  { const o = osc(out, t, 'sine', 150, 0.4, 1, 400); o.frequency.exponentialRampToValueAtTime(40, t + 0.15); break; }
     case 'snare': noise(out, t, 0.18, 'highpass', 1200, 0.7, 0.8); osc(out, t, 'triangle', 190, 0.12, 0.5, 2000); break;
     case 'clap':  noise(out, t, 0.22, 'bandpass', 1400, 0.9, 1); break;
     case 'hat':   noise(out, t, 0.05, 'highpass', 7000, 1, 0.35); break;
+    case 'synth': synthNote(v.patch, v.f, t, sd() * 0.9, out); break;
     case 'bass':  osc(out, t, 'sawtooth', v.f, 0.3, 0.7, 500); break;
     case 'pluck': osc(out, t, 'square', v.f * [1, 1.5, 2, 1.25][s % 4], 0.35, 0.5, 1800); break;
   }
@@ -479,6 +492,7 @@ function buildBeat() {
     const pos = document.createElement('input'); pos.type = 'number'; pos.className = 'pos';
     pos.min = 1; pos.max = VOICES.length; pos.value = r + 1; pos.dataset.posr = r; pos.title = 'Position';
     nm.append(grip, pos, lab, mb, tb, sb);
+    if (v.kind === 'synth') { const eb = mkBtn('Edit', 'edit', false); eb.dataset.r = r; nm.append(eb); }
     if (slots[r]) {
       const cb = mkBtn('×', 'clear', false); cb.dataset.r = r; cb.setAttribute('aria-label', `Remove sample from ${v.name}`);
       nm.append(cb);
@@ -532,7 +546,7 @@ async function loadSampleInto(r, f) {
   init(); ensureEditable();
   const slots = curSlots();
   try {
-    slots[r] = { name: f.name, buf: await ctx.decodeAudioData(await f.arrayBuffer()) };
+    slots[r] = { name: f.name, root: VOICES[r].kind === 'synth' ? VOICES[r].f : undefined, buf: await ctx.decodeAudioData(await f.arrayBuffer()) };
     kitMsg('');
   } catch (err) { kitMsg(`Could not read ${f.name}`); }
   buildBeat();
@@ -624,6 +638,7 @@ function moveChannel(from, to) {
   const mv = arr => { const [x] = arr.splice(from, 1); arr.splice(to, 0, x); };
   mv(VOICES); mv(grid); mv(bmuted); mv(bvol); mv(bpitch); mv(bpan);
   kits.forEach(k => mv(k.slots));
+  editSel = null; renderSynth();
   buildBeat();
 }
 async function addKitFromFiles(files, label) {
@@ -666,6 +681,124 @@ function renderTakes() {
     chip.append(load, del);
     box.append(chip);
   });
+}
+
+// ---------- Synths and instruments ----------
+const PRESETS = {
+  'Sub Bass': { w1: 'sine', w2: 'sine', mix: 0, oct: -1, det: 0, ft: 'lowpass', cut: 400, q: 0.5, lr: 0, ld: 0, a: 0.01, d: 0.1, s: 0.9, r: 0.1 },
+  'Saw Lead': { w1: 'sawtooth', w2: 'sawtooth', mix: 0.6, oct: 0, det: 12, ft: 'lowpass', cut: 3000, q: 2, lr: 5, ld: 200, a: 0.02, d: 0.2, s: 0.7, r: 0.2 },
+  'Wobble Bass': { w1: 'sawtooth', w2: 'square', mix: 0.5, oct: -1, det: 5, ft: 'lowpass', cut: 600, q: 8, lr: 3, ld: 500, a: 0.01, d: 0.2, s: 0.8, r: 0.1 },
+  'Pluck': { w1: 'triangle', w2: 'sawtooth', mix: 0.2, oct: 0, det: 0, ft: 'lowpass', cut: 1200, q: 1, lr: 0, ld: 0, a: 0.002, d: 0.25, s: 0, r: 0.2 },
+  'Warm Pad': { w1: 'sawtooth', w2: 'sawtooth', mix: 0.7, oct: 0, det: 15, ft: 'lowpass', cut: 900, q: 0.7, lr: 0.3, ld: 300, a: 0.6, d: 0.5, s: 0.8, r: 1.2 },
+  'Bell': { w1: 'sine', w2: 'triangle', mix: 0.4, oct: 1, det: 0, ft: 'highpass', cut: 600, q: 0.5, lr: 0, ld: 0, a: 0.005, d: 1.2, s: 0, r: 1 },
+  'Square Keys': { w1: 'square', w2: 'triangle', mix: 0.3, oct: 0, det: 0, ft: 'lowpass', cut: 2500, q: 1, lr: 0, ld: 0, a: 0.005, d: 0.4, s: 0.3, r: 0.3 },
+  'Acid': { w1: 'sawtooth', w2: 'sawtooth', mix: 0, oct: 0, det: 0, ft: 'lowpass', cut: 800, q: 14, lr: 6, ld: 900, a: 0.005, d: 0.15, s: 0.2, r: 0.05 },
+  'Saw Synth': { w1: 'sawtooth', w2: 'sawtooth', mix: 0, oct: 0, det: 0, ft: 'lowpass', cut: 2500, q: 1, lr: 0, ld: 0, a: 0.01, d: 0.3, s: 0.6, r: 0.3 },
+  'Square Synth': { w1: 'square', w2: 'square', mix: 0, oct: 0, det: 0, ft: 'lowpass', cut: 2000, q: 1, lr: 0, ld: 0, a: 0.01, d: 0.3, s: 0.6, r: 0.3 },
+  'Sine Synth': { w1: 'sine', w2: 'sine', mix: 0, oct: 0, det: 0, ft: 'lowpass', cut: 8000, q: 0.5, lr: 0, ld: 0, a: 0.05, d: 0.4, s: 0.7, r: 0.5 },
+  'Triangle Synth': { w1: 'triangle', w2: 'triangle', mix: 0, oct: 0, det: 0, ft: 'lowpass', cut: 3000, q: 0.5, lr: 0, ld: 0, a: 0.02, d: 0.3, s: 0.7, r: 0.3 },
+  '8-Bit Lead': { w1: 'square', w2: 'square', mix: 0, oct: 0, det: 0, ft: 'lowpass', cut: 4000, q: 0.5, lr: 0, ld: 0, a: 0.001, d: 0.1, s: 0.6, r: 0.05 },
+  'Chiptune': { w1: 'square', w2: 'triangle', mix: 0.5, oct: 1, det: 0, ft: 'lowpass', cut: 5000, q: 0.5, lr: 0, ld: 0, a: 0.001, d: 0.2, s: 0.5, r: 0.05 },
+  'Grand Piano': { w1: 'triangle', w2: 'sine', mix: 0.5, oct: 0, det: 3, ft: 'lowpass', cut: 3500, q: 0.7, lr: 0, ld: 0, a: 0.002, d: 1.2, s: 0.15, r: 0.6 },
+  'Electric Piano': { w1: 'sine', w2: 'triangle', mix: 0.6, oct: 0, det: 0, ft: 'lowpass', cut: 4000, q: 0.5, lr: 4, ld: 60, a: 0.003, d: 0.9, s: 0.3, r: 0.4 },
+  '808 Bass': { w1: 'sine', w2: 'sine', mix: 0, oct: -1, det: 0, ft: 'lowpass', cut: 1200, q: 0.5, lr: 0, ld: 0, a: 0.002, d: 1.2, s: 0, r: 0.3, pe: 7, pd: 0.1 },
+  '808 Kick': { w1: 'sine', w2: 'sine', mix: 0, oct: -2, det: 0, ft: 'lowpass', cut: 800, q: 0.5, lr: 0, ld: 0, a: 0.001, d: 0.5, s: 0, r: 0.2, pe: 24, pd: 0.06 }
+};
+let editSel = null;
+const WAVES = ['sine', 'triangle', 'sawtooth', 'square'];
+const FILTERS = ['lowpass', 'highpass', 'bandpass'];
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const midiFreq = m => 440 * Math.pow(2, (m - 69) / 12);
+function previewOut() { const g = ctx.createGain(); g.connect(master); return g; }
+function synthNote(p, freq, t, dur, out) {
+  const amp = ctx.createGain();
+  amp.gain.setValueAtTime(0, t);
+  amp.gain.linearRampToValueAtTime(1, t + p.a);
+  amp.gain.linearRampToValueAtTime(p.s, t + p.a + p.d);
+  amp.gain.setValueAtTime(p.s, t + dur);
+  amp.gain.linearRampToValueAtTime(0, t + dur + p.r);
+  const f = ctx.createBiquadFilter(); f.type = p.ft; f.frequency.value = p.cut; f.Q.value = p.q;
+  const lfo = ctx.createOscillator(); lfo.frequency.value = p.lr || 0.01;
+  const lg = ctx.createGain(); lg.gain.value = p.ld; lfo.connect(lg); lg.connect(f.frequency);
+  const o1 = ctx.createOscillator(), o2 = ctx.createOscillator();
+  o1.type = p.w1; o2.type = p.w2;
+  const base = freq * Math.pow(2, p.oct), pe = p.pe || 0;
+  o1.frequency.setValueAtTime(base * Math.pow(2, pe / 12), t);
+  o1.frequency.exponentialRampToValueAtTime(base, t + (p.pd || 0.05));
+  o2.frequency.value = base;
+  o2.detune.value = p.det;
+  const g1 = ctx.createGain(); g1.gain.value = 0.5;
+  const g2 = ctx.createGain(); g2.gain.value = 0.5 * p.mix;
+  o1.connect(g1); o2.connect(g2); g1.connect(f); g2.connect(f);
+  f.connect(amp); amp.connect(out);
+  const stop = t + dur + p.r + 0.05;
+  [o1, o2, lfo].forEach(o => { o.start(t); o.stop(stop); });
+}
+function addInstrument(name) {
+  VOICES.push({ name, kind: 'synth', f: midiFreq(48), patch: { ...PRESETS[name] }, vol: .8, pat: '................' });
+  grid.push(Array(16).fill(false));
+  bmuted.push(false); bvol.push(.8); bpitch.push(0); bpan.push(0);
+  kits.forEach(k => k.slots.push(null));
+  editSel = VOICES.length - 1;
+}
+function renderInstSel() {
+  const s = $('instSel'); s.innerHTML = '';
+  Object.keys(PRESETS).forEach(n => s.append(new Option(n, n)));
+}
+function pc(label, input) {
+  const w = document.createElement('label'); w.className = 'pc';
+  const s = document.createElement('span'); s.textContent = label;
+  w.append(s, input); return w;
+}
+function prange(label, key, min, max, step) {
+  const i = document.createElement('input'); i.type = 'range';
+  i.min = min; i.max = max; i.step = step; i.value = VOICES[editSel].patch[key]; i.dataset.pk = key;
+  return pc(label, i);
+}
+function psel(label, key, opts) {
+  const i = document.createElement('select');
+  opts.forEach(o => i.append(new Option(o, o)));
+  i.value = VOICES[editSel].patch[key]; i.dataset.pk = key;
+  return pc(label, i);
+}
+function renderSynth() {
+  const box = $('synthEd');
+  const v = editSel !== null ? VOICES[editSel] : null;
+  if (!v || v.kind !== 'synth') { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false; box.innerHTML = '';
+  const head = document.createElement('div'); head.className = 'bname';
+  const h = document.createElement('strong'); h.textContent = v.name;
+  const ps = document.createElement('select'); ps.id = 'presetSel'; ps.setAttribute('aria-label', 'Load preset');
+  ps.append(new Option('Load preset...', ''));
+  Object.keys(PRESETS).forEach(n => ps.append(new Option(n, n)));
+  const ns = document.createElement('select'); ns.id = 'noteSel'; ns.setAttribute('aria-label', 'Note');
+  const cur = Math.round(69 + 12 * Math.log2(v.f / 440));
+  for (let m = 36; m <= 60; m++) ns.append(new Option(NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1), m));
+  ns.value = String(cur);
+  const sv = mkBtn('Save as preset', 'savePreset', false);
+  head.append(h, ps, ns, sv);
+  const g = document.createElement('div'); g.className = 'pgrid';
+  g.append(
+    psel('Oscillator 1', 'w1', WAVES), psel('Oscillator 2', 'w2', WAVES),
+    prange('Osc 2 mix', 'mix', 0, 1, .01), prange('Octave', 'oct', -2, 2, 1),
+    prange('Osc 2 detune (cents)', 'det', -50, 50, 1), psel('Filter', 'ft', FILTERS),
+    prange('Cutoff (Hz)', 'cut', 80, 8000, 1), prange('Resonance', 'q', 0.1, 15, 0.1),
+    prange('LFO rate (Hz)', 'lr', 0, 20, 0.1), prange('LFO depth (Hz)', 'ld', 0, 2000, 10),
+    prange('Attack (s)', 'a', 0.001, 2, 0.001), prange('Decay (s)', 'd', 0.01, 2, 0.01),
+    prange('Sustain', 's', 0, 1, 0.01), prange('Release (s)', 'r', 0.01, 3, 0.01), prange('Pitch drop (semitones)', 'pe', 0, 24, 0.5), prange('Pitch drop time (s)', 'pd', 0.01, 0.5, 0.01)
+  );
+  const keys = document.createElement('div'); keys.className = 'keys';
+  for (let n = 0; n <= 12; n++) {
+    const k = mkBtn(NOTE_NAMES[n % 12], 'key', false); k.dataset.n = n; k.setAttribute('aria-label', 'Play note ' + NOTE_NAMES[n % 12]);
+    keys.append(k);
+  }
+  box.append(head, g, keys);
+}
+function savePreset() {
+  const name = prompt('Preset name');
+  if (!name || !name.trim() || editSel === null) return;
+  PRESETS[name.trim().slice(0, 30)] = { ...VOICES[editSel].patch };
+  renderInstSel(); renderSynth();
 }
 
 // ---------- Events ----------
@@ -761,6 +894,7 @@ $('lanes').addEventListener('input', e => {
 
 $('beat').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.act === 'edit') { editSel = +b.dataset.r; renderSynth(); return; }
   if (b.dataset.act === 'audition') { init(); voice(VOICES[+b.dataset.r], bvol[+b.dataset.r], 0, ctx.currentTime, curSlots()[+b.dataset.r], +b.dataset.r); return; }
   if (b.dataset.act === 'sample') { voiceTarget = +b.dataset.r; $('voiceFile').click(); return; }
   if (b.dataset.act === 'clear') { if (!kits[kitIdx].builtin) { curSlots()[+b.dataset.r] = null; buildBeat(); } return; }
@@ -826,6 +960,40 @@ $('beat').addEventListener('change', e => {
   const to = Math.min(VOICES.length - 1, Math.max(0, (parseInt(e.target.value, 10) || 1) - 1));
   moveChannel(+e.target.dataset.posr, to);
 });
+$('synthEd').addEventListener('input', e => {
+  const k = e.target.dataset.pk;
+  if (k !== undefined && editSel !== null) VOICES[editSel].patch[k] = e.target.type === 'range' ? +e.target.value : e.target.value;
+  if (e.target.id === 'noteSel' && editSel !== null) VOICES[editSel].f = midiFreq(+e.target.value);
+});
+$('synthEd').addEventListener('change', e => {
+  if (e.target.id === 'presetSel' && e.target.value && editSel !== null) {
+    VOICES[editSel].patch = { ...PRESETS[e.target.value] }; renderSynth();
+  }
+  if (e.target.id === 'noteSel' && editSel !== null) VOICES[editSel].f = midiFreq(+e.target.value);
+});
+$('synthEd').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || editSel === null) return;
+  if (b.dataset.act === 'savePreset') { savePreset(); return; }
+  if (b.dataset.act === 'key') {
+    init();
+    const v = VOICES[editSel];
+    const slot = curSlots()[editSel];
+    if (slot) { const s = ctx.createBufferSource(); s.buffer = slot.buf; s.playbackRate.value = Math.pow(2, +b.dataset.n / 12) * (slot.root ? v.f / slot.root : 1); s.connect(previewOut()); s.start(); }
+    else synthNote(v.patch, v.f * Math.pow(2, +b.dataset.n / 12), ctx.currentTime, 0.5, previewOut());
+  }
+});
+$('presetJson').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!d.name || !d.patch) throw new Error('bad preset');
+    PRESETS[String(d.name).slice(0, 30)] = { ...PRESETS['Pluck'], ...d.patch };
+    renderInstSel(); renderSynth();
+    kitMsg('Preset imported');
+  } catch (err) { kitMsg('That file is not a valid preset'); }
+});
+$('addInst').addEventListener('click', () => { addInstrument($('instSel').value); buildBeat(); renderSynth(); });
 $('addChannel').addEventListener('click', () => { addChannel(); buildBeat(); });
 $('saveKit').addEventListener('click', saveKit);
 $('kitJson').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) openKit(f); });
@@ -851,6 +1019,7 @@ document.addEventListener('keydown', e => {
 buildBeat();
 render();
 renderTakes();
+renderInstSel();
 updateClock();
 </script>
 </body>
