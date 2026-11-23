@@ -1,311 +1,306 @@
-<style>
-  #web-daw {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #12131a;
-    color: #f1f5f9;
-    border: 1px solid #2a2d3d;
-    border-radius: 12px;
-    padding: 20px;
-    max-width: 900px;
-    margin: 0 auto;
-    box-sizing: border-box;
-  }
-  #web-daw * { box-sizing: border-box; }
-  .daw-header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #2a2d3d;
-    margin-bottom: 18px;
-  }
-  .daw-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    color: #38bdf8;
-  }
-  .transport {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-  }
-  .daw-btn {
-    background: #1e2130;
-    color: #f1f5f9;
-    border: 1px solid #33384d;
-    padding: 8px 14px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .daw-btn:hover { background: #2b3045; }
-  .daw-btn.play.active { background: #10b981; color: #06281e; border-color: #10b981; }
-  .daw-btn.rec.active { background: #ef4444; color: #fff; border-color: #ef4444; animation: pulse 1.2s infinite; }
-  .daw-btn.export { background: #6366f1; border-color: #6366f1; }
-  .daw-btn.export:hover { background: #4f46e5; }
-  .daw-btn.popout { background: #0284c7; border-color: #0284c7; }
-  .bpm-box {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: #1e2130;
-    padding: 5px 10px;
-    border-radius: 6px;
-    border: 1px solid #33384d;
-    font-size: 0.85rem;
-  }
-  .bpm-box input {
-    width: 52px;
-    background: transparent;
-    border: none;
-    color: #38bdf8;
-    font-weight: 700;
-    font-size: 0.9rem;
-    text-align: center;
-  }
-  .section-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #94a3b8;
-    margin-bottom: 10px;
-    font-weight: 700;
-  }
-  .sequencer {
-    background: #181a24;
-    border: 1px solid #262938;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 18px;
-    overflow-x: auto;
-  }
-  .seq-row {
-    display: grid;
-    grid-template-columns: 70px repeat(8, 1fr);
-    gap: 6px;
-    align-items: center;
-    margin-bottom: 6px;
-    min-width: 460px;
-  }
-  .seq-row:last-child { margin-bottom: 0; }
-  .seq-name { font-size: 0.8rem; font-weight: 600; color: #cbd5e1; }
-  .step {
-    height: 30px;
-    background: #222536;
-    border: 1px solid #32364d;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  .step.on { background: #38bdf8; border-color: #7dd3fc; }
-  .step.current { outline: 2px solid #facc15; }
-  .track-list { display: flex; flex-direction: column; gap: 10px; }
-  .track {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    background: #181a24;
-    border: 1px solid #262938;
-    border-radius: 8px;
-    padding: 12px;
-  }
-  .track-info { display: flex; align-items: center; gap: 10px; min-width: 160px; }
-  .track-name { font-weight: 600; font-size: 0.9rem; }
-  .track-status { font-size: 0.78rem; color: #94a3b8; }
-  .track-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  .vol-slider { width: 85px; accent-color: #38bdf8; }
-  #daw-msg { margin-top: 12px; font-size: 0.85rem; color: #facc15; min-height: 20px; font-weight: 500; }
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
-</style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NightLights Studio DAW</title>
+  <style>
+    :root {
+      --bg: #0f111a;
+      --panel: #1a1d2d;
+      --accent: #7c4dff;
+      --accent-hover: #9670ff;
+      --record: #ff3b5c;
+      --text: #f0f2f8;
+      --muted: #8b92a8;
+      --step-off: #262a40;
+      --step-on: #00e5ff;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      margin: 0;
+      padding: 16px;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .header, .panel {
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 14px 18px;
+      border: 1px solid #2a2f47;
+    }
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .title { font-weight: 700; font-size: 1.1rem; letter-spacing: 0.5px; }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    button:hover { background: var(--accent-hover); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.rec { background: var(--record); }
+    button.rec.active { animation: pulse 1s infinite; }
+    button.secondary { background: #2d324d; }
+    button.secondary:hover { background: #3b4263; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 59, 92, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(255, 59, 92, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 59, 92, 0); }
+    }
+    input[type="number"] {
+      width: 65px;
+      background: #0f111a;
+      color: var(--text);
+      border: 1px solid #353b59;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-weight: 600;
+    }
+    canvas {
+      width: 100%;
+      height: 70px;
+      background: #0b0d14;
+      border-radius: 6px;
+      display: block;
+      margin-top: 10px;
+    }
+    .seq-row {
+      display: grid;
+      grid-template-columns: 70px repeat(16, 1fr);
+      gap: 5px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .seq-label { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+    .step {
+      aspect-ratio: 1;
+      background: var(--step-off);
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .step.active { background: var(--step-on); box-shadow: 0 0 8px rgba(0, 229, 255, 0.4); }
+    .step.playing { border-color: #fff; transform: scale(1.08); }
+    .tracks { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .track-item {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      background: #121521;
+      padding: 10px 14px;
+      border-radius: 8px;
+      gap: 10px;
+    }
+    audio { height: 32px; max-width: 100%; }
+    .status { font-size: 0.85rem; color: var(--muted); }
+  </style>
+</head>
+<body>
 
-<div id="web-daw">
-  <div class="daw-header">
-    <div class="daw-title">WEB STUDIO DAW</div>
-    <div class="transport">
-      <button id="btn-play" class="daw-btn play">Play</button>
-      <button id="btn-stop" class="daw-btn">Stop</button>
-      <div class="bpm-box">
-        <span>BPM</span>
-        <input id="bpm-input" type="number" value="120" min="60" max="200">
-      </div>
-      <button id="btn-export" class="daw-btn export">Download Mix (.WAV)</button>
-      <button id="btn-popout" class="daw-btn popout">Pop-Out Mic Mode ↗</button>
+  <!-- Transport & Master Controls -->
+  <div class="header">
+    <div class="title">STUDIO DAW</div>
+    <div class="controls">
+      <button id="playBtn">▶ Play All</button>
+      <button id="stopBtn" class="secondary">■ Stop</button>
+      <button id="recBtn" class="rec">● Record Mic</button>
+      <label style="font-size:0.85rem;">BPM:
+        <input type="number" id="bpmInput" value="120" min="60" max="200" />
+      </label>
+      <button id="popoutBtn" class="secondary" title="Open in full window">↗ Pop Out</button>
     </div>
   </div>
 
-  <div class="section-label">Beat Sequencer (8-Step Drum Synth)</div>
-  <div class="sequencer" id="sequencer"></div>
+  <!-- Live Microphone & Visualizer -->
+  <div class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong>Microphone Input & Live Monitor</strong>
+      <span class="status" id="micStatus">Ready (Click Record Mic to grant permission)</span>
+    </div>
+    <canvas id="visualizer"></canvas>
+  </div>
 
-  <div class="section-label">Audio Tracks (Microphone Overdubbing)</div>
-  <div class="track-list" id="track-list"></div>
+  <!-- 16-Step Drum Sequencer -->
+  <div class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <strong>Beat Sequencer (16-Step)</strong>
+      <button id="clearSeqBtn" class="secondary" style="padding:4px 10px; font-size:0.8rem;">Clear Grid</button>
+    </div>
+    <div id="sequencer"></div>
+  </div>
 
-  <div id="daw-msg">Initializing...</div>
-</div>
+  <!-- Recorded Vocal / Audio Takes -->
+  <div class="panel">
+    <strong>Recorded Takes</strong>
+    <div class="tracks" id="trackList">
+      <div class="status" id="emptyMsg">No recordings yet. Hit "● Record Mic" to lay down a track.</div>
+    </div>
+  </div>
 
 <script>
-(function() {
-  var audioCtx = null;
-  var isPlaying = false;
-  var currentStep = 0;
-  var stepTimer = null;
-  var activeSources = [];
-  var mediaRecorder = null;
-  var recordingTrackIndex = null;
+  // --- Audio Context & Sequencer Setup ---
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx;
+  let isPlaying = false;
+  let currentStep = 0;
+  let timerID = null;
 
-  var drumNames = ["Kick", "Snare", "Hi-Hat"];
-  var pattern = new Array(3);
-  pattern[0] = new Array(1, 0, 0, 0, 1, 0, 0, 0);
-  pattern[1] = new Array(0, 0, 1, 0, 0, 0, 1, 0);
-  pattern[2] = new Array(1, 1, 1, 1, 1, 1, 1, 1);
+  const instruments = ['Kick', 'Snare', 'Hi-Hat', 'Clap'];
+  const grid = instruments.map(() => Array(16).fill(false));
+  // Default basic beat pattern
+  [0, 4, 8, 12].forEach(i => grid[0][i] = true);
+  [4, 12].forEach(i => grid[1][i] = true);
+  [0, 2, 4, 6, 8, 10, 12, 14].forEach(i => grid[2][i] = true);
 
-  var tracks = [
-    { name: "Track 1 (Vocals)", buffer: null, volume: 0.9, muted: false },
-    { name: "Track 2 (Guitar/Synth)", buffer: null, volume: 0.9, muted: false },
-    { name: "Track 3 (Harmony)", buffer: null, volume: 0.9, muted: false }
-  ];
+  const seqContainer = document.getElementById('sequencer');
+  instruments.forEach((name, rowIdx) => {
+    const row = document.createElement('div');
+    row.className = 'seq-row';
+    const label = document.createElement('div');
+    label.className = 'seq-label';
+    label.textContent = name;
+    row.appendChild(label);
 
-  var msgEl = document.getElementById("daw-msg");
-  function setMsg(txt) {
-    if (msgEl) msgEl.textContent = txt;
+    for (let col = 0; col < 16; col++) {
+      const step = document.createElement('div');
+      step.className = 'step' + (grid[rowIdx][col] ? ' active' : '');
+      step.dataset.row = rowIdx;
+      step.dataset.col = col;
+      step.onclick = () => {
+        grid[rowIdx][col] = !grid[rowIdx][col];
+        step.classList.toggle('active');
+      };
+      row.appendChild(step);
+    }
+    seqContainer.appendChild(row);
+  });
+
+  function initAudio() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
   }
 
-  function ensureAudio() {
-    if (!audioCtx) {
-      var AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      audioCtx = new AudioContextClass();
-    }
-    if (audioCtx.state === "suspended") {
-      audioCtx.resume();
-    }
-  }
+  // Synthesized Drum Sounds (Zero external files needed)
+  function playDrum(type) {
+    initAudio();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
 
-  function playDrumSound(ctx, type, time) {
-    if (type === 0) {
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(140, time);
-      osc.frequency.exponentialRampToValueAtTime(42, time + 0.14);
-      gain.gain.setValueAtTime(0.9, time);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(time);
-      osc.stop(time + 0.25);
-    } else if (type === 1) {
-      var bufferSize = Math.floor(ctx.sampleRate * 0.15);
-      var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      var data = buffer.getChannelData(0);
-      for (var i = 0; i < bufferSize; i++) {
-        data[i] = Math.random() * 2 - 1;
-      }
-      var noise = ctx.createBufferSource();
-      noise.buffer = buffer;
-      var filter = ctx.createBiquadFilter();
-      filter.type = "highpass";
-      filter.frequency.value = 900;
-      var gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.55, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
-      noise.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-      noise.start(time);
-    } else if (type === 2) {
-      var bufferSize = Math.floor(ctx.sampleRate * 0.05);
-      var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      var data = buffer.getChannelData(0);
-      for (var i = 0; i < bufferSize; i++) {
-        data[i] = Math.random() * 2 - 1;
-      }
-      var noise = ctx.createBufferSource();
-      noise.buffer = buffer;
-      var filter = ctx.createBiquadFilter();
-      filter.type = "highpass";
-      filter.frequency.value = 6000;
-      var gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.25, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
-      noise.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-      noise.start(time);
+    if (type === 'Kick') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.4);
+      gain.gain.setValueAtTime(1, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.4);
+    } else if (type === 'Snare' || type === 'Clap') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(type === 'Snare' ? 180 : 300, now);
+      gain.gain.setValueAtTime(0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } else if (type === 'Hi-Hat') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(800, now);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.08);
     }
   }
 
-  function renderSequencer() {
-    var seqEl = document.getElementById("sequencer");
-    seqEl.innerHTML = "";
-    for (var rowIdx = 0; rowIdx < drumNames.length; rowIdx++) {
-      (function(r) {
-        var row = document.createElement("div");
-        row.className = "seq-row";
-        var label = document.createElement("div");
-        label.className = "seq-name";
-        label.textContent = drumNames[r];
-        row.appendChild(label);
+  function stepSequencer() {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('playing'));
+    document.querySelectorAll(`.step[data-col="${currentStep}"]`).forEach(s => s.classList.add('playing'));
 
-        for (var step = 0; step < 8; step++) {
-          (function(s) {
-            var cell = document.createElement("div");
-            cell.className = "step" + (pattern[r][s] ? " on" : "");
-            cell.setAttribute("data-step", s);
-            cell.onclick = function() {
-              pattern[r][s] = pattern[r][s] ? 0 : 1;
-              cell.classList.toggle("on");
-            };
-            row.appendChild(cell);
-          })(step);
-        }
-        seqEl.appendChild(row);
-      })(rowIdx);
-    }
+    instruments.forEach((inst, idx) => {
+      if (grid[idx][currentStep]) playDrum(inst);
+    });
+
+    currentStep = (currentStep + 1) % 16;
   }
 
-  function renderTracks() {
-    var listEl = document.getElementById("track-list");
-    listEl.innerHTML = "";
-    for (var idx = 0; idx < tracks.length; idx++) {
-      (function(i) {
-        var t = tracks[i];
-        var row = document.createElement("div");
-        row.className = "track";
+  // --- Transport Controls ---
+  const playBtn = document.getElementById('playBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const bpmInput = document.getElementById('bpmInput');
 
-        var info = document.createElement("div");
-        info.className = "track-info";
-        var statusTxt = t.buffer ? t.buffer.duration.toFixed(1) + "s recorded" : "Empty";
-        info.innerHTML = '<div><div class="track-name">' + t.name + '</div><div class="track-status">' + statusTxt + '</div></div>';
+  playBtn.onclick = () => {
+    if (isPlaying) return;
+    initAudio();
+    isPlaying = true;
+    const interval = (60 / bpmInput.value / 4) * 1000;
+    stepSequencer();
+    timerID = setInterval(stepSequencer, interval);
+    document.querySelectorAll('audio').forEach(a => { a.currentTime = 0; a.play(); });
+  };
 
-        var ctrls = document.createElement("div");
-        ctrls.className = "track-controls";
+  stopBtn.onclick = () => {
+    isPlaying = false;
+    clearInterval(timerID);
+    currentStep = 0;
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('playing'));
+    document.querySelectorAll('audio').forEach(a => { a.pause(); a.currentTime = 0; });
+  };
 
-        var recBtn = document.createElement("button");
-        recBtn.className = "daw-btn rec" + (recordingTrackIndex === i ? " active" : "");
-        recBtn.textContent = recordingTrackIndex === i ? "Stop Rec" : "Record";
-        recBtn.onclick = function() { toggleRecord(i); };
+  document.getElementById('clearSeqBtn').onclick = () => {
+    grid.forEach(r => r.fill(false));
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  };
 
-        var muteBtn = document.createElement("button");
-        muteBtn.className = "daw-btn";
-        muteBtn.textContent = t.muted ? "Unmute" : "Mute";
-        muteBtn.onclick = function() {
-          t.muted = !t.muted;
-          renderTracks();
+  document.getElementById('popoutBtn').onclick = () => {
+    window.open(window.location.href, '_blank', 'width=900,height=700');
+  };
+
+  // --- Microphone Recording & Visualizer ---
+  const recBtn = document.getElementById('recBtn');
+  const micStatus = document.getElementById('micStatus');
+  const trackList = document.getElementById('trackList');
+  const canvas = document.getElementById('visualizer');
+  const canvasCtx = canvas.getContext('2d');
+
+  let mediaRecorder;
+  let audioChunks = [];
+  let isRecording = false;
+  let takeCount = 0;
+
+  recBtn.onclick = async () => {
+    if (!isRecording) {
+      try {
+        initAudio();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        visualize(stream);
+
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) audioChunks.push(e.data);
         };
 
-        var vol = document.createElement("input");
-        vol.type = "range";
-        vol.className = "vol-slider";
-        vol.min = 0;
-        vol.max = 1;
-        vol.step = 0.05;
-        vol.value = t.volume;
-        vol.oninput = function(e) { t.volume = parseFloat(e.target.value); };
-
-        var clearBtn = document.createElement("button");
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+          const url = URL.createObjectURL(blob);
+          addTrack(url);
