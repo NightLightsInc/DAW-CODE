@@ -51,7 +51,7 @@ input[type=file]{display:none}
 section.beat{padding:16px 20px 28px}
 section.beat h2{margin:0 0 10px;font-size:16px;font-weight:600}
 section.beat h2 small{color:var(--dim);font-weight:400;font-size:12px;margin-left:8px}
-.brow{display:grid;grid-template-columns:300px 130px repeat(16,1fr);gap:6px;align-items:center;margin-bottom:6px}
+.brow{display:grid;grid-template-columns:340px 130px repeat(16,1fr);gap:6px;align-items:center;margin-bottom:6px}
 .bname{display:flex;align-items:center;gap:8px}
 .bname span{min-width:52px}
 .bl{display:flex;flex-direction:column;min-width:0;width:80px}
@@ -66,6 +66,8 @@ section.beat h2 small{color:var(--dim);font-weight:400;font-size:12px;margin-lef
 .tune{display:flex;flex-direction:column;gap:3px}
 .tune input{height:14px;margin:0}
 .bname button{padding:3px 7px;font-size:12px}
+.grip{cursor:grab;color:var(--dim);padding:0 2px;user-select:none;font-size:14px}
+.pos{width:46px;font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:6px;padding:2px 4px}
 .step{height:30px;border-radius:6px;background:var(--well);border:1px solid var(--line);padding:0;cursor:pointer}
 .step.beat{border-color:var(--beat)}
 .step.on{background:var(--lamp);border-color:var(--lamp)}
@@ -113,6 +115,7 @@ kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;font:inherit;co
       <label class="btn" for="kitFiles">Load samples</label>
       <button id="addChannel">Add channel</button>
       <button id="saveKit">Save kit</button>
+      <label class="btn" for="kitFolder">Add kit from computer</label>
       <label class="btn" for="kitJson">Open kit</label>
       <span id="kitMsg"></span>
     </div>
@@ -120,6 +123,7 @@ kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;font:inherit;co
     <input id="kitFiles" type="file" accept="audio/*" multiple hidden>
     <input id="voiceFile" type="file" accept="audio/*" hidden>
     <input id="kitJson" type="file" accept=".json,application/json" hidden>
+    <input id="kitFolder" type="file" accept="audio/*" webkitdirectory multiple hidden>
     <div class="bar">
       <button id="clear">Clear pattern</button>
       <button id="demo">Load night drive</button>
@@ -238,15 +242,17 @@ function drawClip(c, cv, color = '#b26bff') {
   const g = cv.getContext('2d');
   const n = c.wave.mn.length; if (!n) return;
   const per = n / w;
+  let amp = 0; for (let j = 0; j < n; j++) { const a = Math.max(-c.wave.mn[j], c.wave.mx[j]); if (a > amp) amp = a; }
+  const k = S / Math.max(amp, 0.005);
   g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(0, mid, w, 1);
   for (let x = 0; x < w; x++) {
     const s = Math.floor(x * per), e = Math.max(s + 1, Math.floor((x + 1) * per));
     let lo = 0, hi = 0;
     for (let j = s; j < e && j < n; j++) { if (c.wave.mn[j] < lo) lo = c.wave.mn[j]; if (c.wave.mx[j] > hi) hi = c.wave.mx[j]; }
     g.globalAlpha = 1; g.fillStyle = color;
-    if (hi > 0) g.fillRect(x, mid - hi * S, 1, hi * S);
+    if (hi > 0) g.fillRect(x, mid - hi * k, 1, hi * k);
     g.globalAlpha = 0.5;
-    if (lo < 0) g.fillRect(x, mid, 1, -lo * S);
+    if (lo < 0) g.fillRect(x, mid, 1, -lo * k);
   }
   g.globalAlpha = 1;
 }
@@ -461,7 +467,10 @@ function buildBeat() {
     const mb = mkBtn('Mute', 'bmute', bmuted[r]); mb.dataset.r = r;
     const tb = mkBtn('Test', 'audition', false); tb.dataset.r = r; tb.setAttribute('aria-label', `Play ${v.name}`);
     const sb = mkBtn('Sample', 'sample', false); sb.dataset.r = r; sb.setAttribute('aria-label', `Load sample for ${v.name}`);
-    nm.append(lab, mb, tb, sb);
+    const grip = document.createElement('span'); grip.className = 'grip'; grip.draggable = true; grip.textContent = '⠗'; grip.title = 'Drag to move';
+    const pos = document.createElement('input'); pos.type = 'number'; pos.className = 'pos';
+    pos.min = 1; pos.max = VOICES.length; pos.value = r + 1; pos.dataset.posr = r; pos.title = 'Position';
+    nm.append(grip, pos, lab, mb, tb, sb);
     if (slots[r]) {
       const cb = mkBtn('×', 'clear', false); cb.dataset.r = r; cb.setAttribute('aria-label', `Remove sample from ${v.name}`);
       nm.append(cb);
@@ -597,6 +606,42 @@ async function openKit(file) {
   buildBeat();
 }
 
+// ---------- Channel order and kits from files ----------
+const HINTS = {
+  kick: /kick|\bkd\b|\bbd\b|bass.?drum/i, snare: /snare|\bsd\b|\bsnr\b/i, clap: /clap|\bcp\b/i,
+  hat: /hat|\bhh\b|cymbal|\bcy\b/i, bass: /\bbass\b|\bsub\b/i, pluck: /pluck|lead|synth|keys|chord/i
+};
+function moveChannel(from, to) {
+  if (from === to || from < 0 || to < 0 || from >= VOICES.length || to >= VOICES.length) return;
+  const mv = arr => { const [x] = arr.splice(from, 1); arr.splice(to, 0, x); };
+  mv(VOICES); mv(grid); mv(bmuted); mv(bvol); mv(bpitch); mv(bpan);
+  kits.forEach(k => mv(k.slots));
+  buildBeat();
+}
+async function addKitFromFiles(files, label) {
+  init();
+  const audio = [...files]
+    .filter(f => /^audio\//.test(f.type) || /\.(wav|mp3|ogg|flac|m4a|aiff?)$/i.test(f.name))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  if (!audio.length) { kitMsg('No audio files found there'); return; }
+  kits.push({ name: label || 'Imported kit', slots: VOICES.map(() => null) });
+  kitIdx = kits.length - 1;
+  const kit = kits[kitIdx];
+  kitMsg(`Loading ${audio.length} files...`);
+  let failed = 0;
+  for (const f of audio) {
+    let buf;
+    try { buf = await ctx.decodeAudioData(await f.arrayBuffer()); } catch (err) { failed++; continue; }
+    const hit = VOICES.findIndex((v, i) => !kit.slots[i] && HINTS[v.name.toLowerCase()] && HINTS[v.name.toLowerCase()].test(f.name));
+    let r = hit >= 0 ? hit : VOICES.findIndex((_, i) => !kit.slots[i]);
+    if (r < 0) { addChannel(); r = VOICES.length - 1; }
+    kit.slots[r] = { name: f.name, buf };
+    buildBeat();
+  }
+  kitMsg(failed ? `Kit added. Skipped ${failed} unreadable files` : 'Kit added');
+  buildBeat();
+}
+
 // ---------- Events ----------
 $('play').addEventListener('click', togglePlay);
 $('stop').addEventListener('click', stopAll);
@@ -616,6 +661,15 @@ $('bpm').addEventListener('input', e => { bpm = +e.target.value; $('bpmOut').tex
 $('zoom').addEventListener('input', e => { px = +e.target.value; render(); updateClock(); });
 $('master').addEventListener('input', e => { if (master) master.gain.value = +e.target.value; });
 
+function seekTo(p) {
+  pos = Math.max(0, p);
+  if (playing) play(pos);
+  placePlayhead(); updateClock();
+}
+$('rulerBody').addEventListener('click', e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  seekTo((e.clientX - r.left) / px);
+});
 $('lanes').addEventListener('click', e => {
   const row = e.target.closest('.lane'); if (!row) return;
   const i = +row.dataset.i, tr = tracks[i];
@@ -625,7 +679,7 @@ $('lanes').addEventListener('click', e => {
   const body = e.target.closest('.body');
   if (body) {
     const p = Math.max(0, (e.clientX - body.getBoundingClientRect().left) / px);
-    if (playing) play(p); else pos = p;
+    seekTo(p);
   }
   render(); updateClock();
 });
@@ -682,9 +736,29 @@ $('voiceFile').addEventListener('change', e => {
 $('beat').addEventListener('dragover', e => e.preventDefault());
 $('beat').addEventListener('drop', e => {
   e.preventDefault();
-  const files = [...e.dataTransfer.files].filter(f => /audio/.test(f.type) || /\.(wav|mp3|ogg|flac|m4a|aiff?)$/i.test(f.name));
   const row = e.target.closest('.brow');
+  if ([...e.dataTransfer.types].includes('text/nl-channel')) {
+    if (row) moveChannel(+e.dataTransfer.getData('text/nl-channel'), +row.dataset.r);
+    return;
+  }
+  const files = [...e.dataTransfer.files].filter(f => /audio/.test(f.type) || /\.(wav|mp3|ogg|flac|m4a|aiff?)$/i.test(f.name));
   if (files.length) loadMany(files, row ? +row.dataset.r : 0);
+});
+$('kitFolder').addEventListener('change', e => {
+  const files = e.target.files;
+  const label = files[0] && files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : 'Imported kit';
+  addKitFromFiles(files, label);
+  e.target.value = '';
+});
+$('beat').addEventListener('dragstart', e => {
+  const g = e.target.closest('.grip'); if (!g) return;
+  e.dataTransfer.setData('text/nl-channel', g.closest('.brow').dataset.r);
+  e.dataTransfer.effectAllowed = 'move';
+});
+$('beat').addEventListener('change', e => {
+  if (!e.target.classList.contains('pos')) return;
+  const to = Math.min(VOICES.length - 1, Math.max(0, (parseInt(e.target.value, 10) || 1) - 1));
+  moveChannel(+e.target.dataset.posr, to);
 });
 $('addChannel').addEventListener('click', () => { addChannel(); buildBeat(); });
 $('saveKit').addEventListener('click', saveKit);
@@ -694,6 +768,7 @@ $('demo').addEventListener('click', () => { grid = VOICES.map(v => [...v.pat].ma
 
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && e.target === document.body) { e.preventDefault(); togglePlay(); }
+  if (e.code === 'Home' && e.target === document.body) { e.preventDefault(); seekTo(0); }
 });
 
 buildBeat();
