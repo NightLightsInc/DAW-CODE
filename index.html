@@ -43,9 +43,13 @@ input[type=file]{display:none}
 .hbtns button[aria-pressed="true"][data-act="mute"]{color:var(--lamp);border-color:var(--lamp)}
 .hbtns button[aria-pressed="true"][data-act="solo"]{color:var(--cyan);border-color:var(--cyan)}
 .hdr input[type=range]{width:100%;accent-color:var(--lamp)}
-.clip{position:absolute;top:6px;bottom:6px;border-radius:6px;background:rgba(0,0,0,.28);border:1px solid var(--tc,#6b4d22);overflow:hidden;cursor:pointer}
+.clip{position:absolute;top:6px;bottom:6px;border-radius:6px;background:rgba(0,0,0,.28);border:1px solid var(--tc,#6b4d22);overflow:hidden;cursor:grab}
 .clip.live{border-color:var(--red);background:#2a1816}
 .clip canvas{display:block;height:100%}
+.clip.sel{box-shadow:inset 0 0 0 2px #fff}
+.clipdel{position:absolute;top:2px;right:2px;z-index:2;padding:0 6px;font-size:12px;line-height:16px;background:rgba(0,0,0,.6)}
+.takes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;gap:4px}
 .clip .cl{position:absolute;left:6px;top:4px;font-size:11px;color:#fff;background:rgba(0,0,0,.5);padding:1px 6px;border-radius:4px;pointer-events:none;z-index:1}
 .ph{position:absolute;top:0;bottom:0;width:2px;background:var(--cyan);z-index:4;pointer-events:none}
 section.beat{padding:16px 20px 28px}
@@ -91,6 +95,7 @@ kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;font:inherit;co
     <label class="ctl">Tempo <input id="bpm" type="range" min="60" max="180" value="96"><output id="bpmOut">96</output></label>
     <label class="ctl">Zoom <input id="zoom" type="range" min="20" max="220" value="80"></label>
     <label class="ctl">Master <input id="master" type="range" min="0" max="1" step="0.01" value="0.8"></label>
+    <label class="ctl"><input id="snap" type="checkbox" checked> Snap to beat</label>
     <button id="addTrack">Add track</button>
     <label class="btn" for="file">Import audio</label><input id="file" type="file" accept="audio/*">
     <button id="export" aria-pressed="false">Export mix</button>
@@ -127,6 +132,8 @@ kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;font:inherit;co
     <div class="bar">
       <button id="clear">Clear pattern</button>
       <button id="demo">Load night drive</button>
+      <button id="saveTake">Save beat take</button>
+      <span id="takes" class="takes"></span>
     </div>
   </section>
 </main>
@@ -288,14 +295,15 @@ function render() {
     body.className = 'body'; body.style.width = W + 'px'; body.style.setProperty('--bw', (barSec() * px) + 'px');
     tr.clips.forEach(c => {
       const el = document.createElement('div');
-      el.className = 'clip' + (c.live ? ' live' : '');
+      el.className = 'clip' + (c.live ? ' live' : '') + (c.id === selClip ? ' sel' : '');
       el.dataset.id = c.id;
       el.style.left = (c.start * px) + 'px';
       el.style.width = Math.max(4, c.dur * px) + 'px';
       const cv = document.createElement('canvas');
       const lb = document.createElement('span'); lb.className = 'cl'; lb.textContent = c.name || 'Take';
       el.style.setProperty('--tc', tr.color);
-      el.append(cv, lb); body.append(el); drawClip(c, cv, tr.color);
+      const del = document.createElement('button'); del.className = 'clipdel'; del.textContent = '×'; del.setAttribute('aria-label', 'Delete take');
+      el.append(cv, lb, del); body.append(el); drawClip(c, cv, tr.color);
     });
     row.append(h, body); lanes.append(row);
   });
@@ -642,6 +650,24 @@ async function addKitFromFiles(files, label) {
   buildBeat();
 }
 
+// ---------- Takes ----------
+let selClip = null, beatTakes = [];
+function deleteClip(id) {
+  tracks.forEach(t => { t.clips = t.clips.filter(c => c.id !== id); });
+  if (selClip === id) selClip = null;
+  render();
+}
+function renderTakes() {
+  const box = $('takes'); box.innerHTML = '';
+  beatTakes.forEach((t, i) => {
+    const chip = document.createElement('span'); chip.className = 'chip';
+    const load = mkBtn(t.name, 'loadtake', false); load.dataset.i = i;
+    const del = mkBtn('×', 'deltake', false); del.dataset.i = i; del.setAttribute('aria-label', 'Delete ' + t.name);
+    chip.append(load, del);
+    box.append(chip);
+  });
+}
+
 // ---------- Events ----------
 $('play').addEventListener('click', togglePlay);
 $('stop').addEventListener('click', stopAll);
@@ -670,11 +696,51 @@ $('rulerBody').addEventListener('click', e => {
   const r = e.currentTarget.getBoundingClientRect();
   seekTo((e.clientX - r.left) / px);
 });
+let drag = null, justDragged = false;
+$('lanes').addEventListener('pointerdown', e => {
+  const el = e.target.closest('.clip');
+  if (!el || e.button !== 0 || e.target.closest('.clipdel')) return;
+  const ti = +el.closest('.lane').dataset.i;
+  const c = tracks[ti].clips.find(x => x.id === el.dataset.id);
+  if (!c || c.live) return;
+  drag = { c, el, ti, x0: e.clientX, s0: c.start, moved: false };
+  el.setPointerCapture(e.pointerId);
+});
+document.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = (e.clientX - drag.x0) / px;
+  if (!drag.moved && Math.abs(dx * px) < 4) return;
+  drag.moved = true;
+  let s = Math.max(0, drag.s0 + dx);
+  if ($('snap').checked) { const beat = 60 / bpm; s = Math.round(s / beat) * beat; }
+  drag.c.start = s;
+  drag.el.style.left = (s * px) + 'px';
+});
+document.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (!d.moved) return;
+  justDragged = true; setTimeout(() => { justDragged = false; }, 0);
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const lane = under && under.closest('.lane');
+  if (lane && +lane.dataset.i !== d.ti) {
+    const ni = +lane.dataset.i;
+    tracks[d.ti].clips = tracks[d.ti].clips.filter(x => x !== d.c);
+    tracks[ni].clips.push(d.c);
+    sel = ni;
+  }
+  render();
+  if (playing) play(pos);
+});
 $('lanes').addEventListener('click', e => {
+  if (justDragged) return;
   const row = e.target.closest('.lane'); if (!row) return;
   const i = +row.dataset.i, tr = tracks[i];
   const b = e.target.closest('button');
+  if (b && b.classList.contains('clipdel')) { deleteClip(b.closest('.clip').dataset.id); return; }
   if (b) { if (b.dataset.act === 'mute') tr.mute = !tr.mute; else tr.solo = !tr.solo; render(); return; }
+  const clipEl = e.target.closest('.clip');
+  selClip = clipEl ? clipEl.dataset.id : null;
   sel = i;
   const body = e.target.closest('.body');
   if (body) {
@@ -763,16 +829,28 @@ $('beat').addEventListener('change', e => {
 $('addChannel').addEventListener('click', () => { addChannel(); buildBeat(); });
 $('saveKit').addEventListener('click', saveKit);
 $('kitJson').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) openKit(f); });
+$('saveTake').addEventListener('click', () => {
+  beatTakes.push({ name: 'Beat take ' + (beatTakes.length + 1), grid: grid.map(r => [...r]) });
+  renderTakes();
+});
+$('takes').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const i = +b.dataset.i;
+  if (b.dataset.act === 'loadtake') { grid = beatTakes[i].grid.map(r => [...r]); refreshBeat(); }
+  else { beatTakes.splice(i, 1); renderTakes(); }
+});
 $('clear').addEventListener('click', () => { grid = grid.map(r => r.map(() => false)); refreshBeat(); });
 $('demo').addEventListener('click', () => { grid = VOICES.map(v => [...v.pat].map(c => c === 'x')); refreshBeat(); });
 
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && e.target === document.body) { e.preventDefault(); togglePlay(); }
   if (e.code === 'Home' && e.target === document.body) { e.preventDefault(); seekTo(0); }
+  if ((e.code === 'Delete' || e.code === 'Backspace') && selClip && e.target === document.body) { e.preventDefault(); deleteClip(selClip); }
 });
 
 buildBeat();
 render();
+renderTakes();
 updateClock();
 </script>
 </body>
