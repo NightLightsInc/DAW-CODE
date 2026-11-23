@@ -234,3 +234,236 @@
       let min = 1.0, max = -1.0;
       for (let j = 0; j < step; j++) {
         const val = data[(i * step) + j];
+if (val !== undefined) {
+if (val < min) min = val;
+if (val > max) max = val;
+}
+}
+c.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
+}
+}
+function createLoopBuffer(type) {
+const bpm = Number(document.getElementById("bpmInput").value) || 120;
+const duration = (60 / bpm) * 8;
+const sampleRate = ctx.sampleRate;
+const buffer = ctx.createBuffer(1, Math.floor(sampleRate * duration), sampleRate);
+const data = buffer.getChannelData(0);
+const beatLen = sampleRate * (60 / bpm);
+for (let i = 0; i < data.length; i++) {
+const t = i / sampleRate;
+const beatPos = i % beatLen;
+const beatIndex = Math.floor(i / beatLen);
+if (type === "beat") {
+let sample = 0;
+if (beatIndex % 2 === 0 && beatPos < sampleRate * 0.25) {
+const env = Math.exp(-beatPos / (sampleRate * 0.06));
+sample += Math.sin(2 * Math.PI * (120 * env + 40) * (beatPos / sampleRate)) * env;
+}
+if (beatIndex % 2 === 1 && beatPos < sampleRate * 0.2) {
+const env = Math.exp(-beatPos / (sampleRate * 0.05));
+sample += (Math.random() * 2 - 1) * env * 0.8;
+}
+if ((i % (beatLen / 2)) < sampleRate * 0.04) {
+sample += (Math.random() * 2 - 1) * 0.25;
+}
+data[i] = Math.max(-1, Math.min(1, sample));
+} else if (type === "bass") {
+const notes = [55, 55, 65.41, 73.42, 55, 55, 82.41, 73.42];
+const freq = notes[beatIndex % notes.length];
+const env = Math.exp(-beatPos / (beatLen * 0.7));
+data[i] = Math.tanh(Math.sin(2 * Math.PI * freq * t) * 2.5) * env * 0.6;
+} else if (type === "pad") {
+const chord = [220, 261.63, 329.63, 392.00];
+let sum = 0;
+chord.forEach(f => sum += Math.sin(2 * Math.PI * f * t));
+data[i] = (sum / chord.length) * 0.45 * Math.sin((Math.PI * i) / data.length);
+}
+}
+return buffer;
+}
+function addGeneratedClip(trackIdx, type) {
+if (ctx.state === "suspended") ctx.resume();
+const targetTrack = tracks[trackIdx] || tracks[0];
+const lastEnd = targetTrack.clips.reduce((max, c) => Math.max(max, c.start + c.buffer.duration), 0);
+const buffer = createLoopBuffer(type);
+targetTrack.clips.push({ name: type.toUpperCase() + " Loop", start: lastEnd, buffer });
+renderTracks();
+}
+function makeDraggable(el, clip) {
+let startX, origStart;
+el.onmousedown = (e) => {
+startX = e.clientX;
+origStart = clip.start;
+window.onmousemove = (ev) => {
+const dx = (ev.clientX - startX) / PIXELS_PER_SEC;
+clip.start = Math.max(0, origStart + dx);
+el.style.left = (clip.start * PIXELS_PER_SEC) + "px";
+};
+window.onmouseup = () => { window.onmousemove = null; };
+};
+}
+function startPlayback() {
+if (isPlaying) return;
+if (ctx.state === "suspended") ctx.resume();
+isPlaying = true;
+document.getElementById("btnPlay").classList.add("play-active");
+startTime = ctx.currentTime - pauseOffset;
+const anySolo = tracks.some(t => t.solo);
+tracks.forEach(t => {
+if (t.mute || (anySolo && !t.solo)) return;
+const gain = ctx.createGain();
+gain.gain.value = t.volume;
+gain.connect(ctx.destination);
+t.clips.forEach(clip => {
+const clipEnd = clip.start + clip.buffer.duration;
+if (clipEnd > pauseOffset) {
+const src = ctx.createBufferSource();
+src.buffer = clip.buffer;
+src.connect(gain);
+const delay = Math.max(0, clip.start - pauseOffset);
+const offset = Math.max(0, pauseOffset - clip.start);
+src.start(ctx.currentTime + delay, offset);
+activeSources.push(src);
+}
+});
+});
+updatePlayhead();
+}
+function stopPlayback() {
+isPlaying = false;
+document.getElementById("btnPlay").classList.remove("play-active");
+activeSources.forEach(s => { try { s.stop(); } catch(e){} });
+activeSources = [];
+cancelAnimationFrame(animFrame);
+pauseOffset = 0;
+document.getElementById("playhead").style.left = "0px";
+document.getElementById("timeDisplay").textContent = "00:00.0";
+}
+function updatePlayhead() {
+if (!isPlaying) return;
+const elapsed = ctx.currentTime - startTime;
+pauseOffset = elapsed;
+document.getElementById("playhead").style.left = (elapsed * PIXELS_PER_SEC) + "px";
+const mins = String(Math.floor(elapsed / 60)).padStart(2, "0");
+const secs = (elapsed % 60).toFixed(1).padStart(4, "0");
+document.getElementById("timeDisplay").textContent = ${mins}:${secs};
+animFrame = requestAnimationFrame(updatePlayhead);
+}
+document.getElementById("btnRec").onclick = async () => {
+const btn = document.getElementById("btnRec");
+if (!isRecording) {
+try {
+if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+alert("Microphone recording requires HTTPS or localhost.");
+return;
+}
+const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+mediaRecorder = new MediaRecorder(stream);
+recordedChunks = [];
+const recStartPos = pauseOffset;
+mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+mediaRecorder.onstop = async () => {
+const blob = new Blob(recordedChunks, { type: "audio/webm" });
+const arrayBuf = await blob.arrayBuffer();
+const audioBuf = await ctx.decodeAudioData(arrayBuf);
+tracks[2].clips.push({ name: "Mic Recording", start: recStartPos, buffer: audioBuf });
+renderTracks();
+stream.getTracks().forEach(track => track.stop());
+};
+mediaRecorder.start();
+isRecording = true;
+btn.classList.add("rec-active");
+btn.textContent = "■ Stop Rec";
+if (!isPlaying) startPlayback();
+} catch (err) {
+alert("Could not access microphone: " + err.message);
+}
+} else {
+mediaRecorder.stop();
+isRecording = false;
+btn.classList.remove("rec-active");
+btn.textContent = "● Record Mic";
+stopPlayback();
+}
+};
+const notes = [
+{ name: "C4", freq: 261.63 }, { name: "D4", freq: 293.66 }, { name: "E4", freq: 329.63 },
+{ name: "F4", freq: 349.23 }, { name: "G4", freq: 392.00 }, { name: "A4", freq: 440.00 },
+{ name: "B4", freq: 493.88 }, { name: "C5", freq: 523.25 }
+];
+const pianoDiv = document.getElementById("pianoKeys");
+notes.forEach(n => {
+const k = document.createElement("div");
+k.className = "key";
+k.textContent = n.name;
+k.onmousedown = () => {
+if (ctx.state === "suspended") ctx.resume();
+const osc = ctx.createOscillator();
+const g = ctx.createGain();
+osc.type = "triangle";
+osc.frequency.value = n.freq;
+g.gain.setValueAtTime(0.3, ctx.currentTime);
+g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+osc.connect(g).connect(ctx.destination);
+osc.start();
+osc.stop(ctx.currentTime + 0.6);
+};
+pianoDiv.appendChild(k);
+});
+function toggleMute(i) { tracks[i].mute = !tracks[i].mute; renderTracks(); }
+function toggleSolo(i) { tracks[i].solo = !tracks[i].solo; renderTracks(); }
+function setVolume(i, v) { tracks[i].volume = Number(v); }
+document.getElementById("btnPlay").onclick = startPlayback;
+document.getElementById("btnStop").onclick = stopPlayback;
+document.getElementById("btnAddTrack").onclick = () => {
+const colors = ["#e67e22", "#9b59b6", "#1abc9c", "#e84393"];
+tracks.push({
+id: tracks.length,
+name: Audio Track ${tracks.length + 1},
+color: colors[tracks.length % colors.length],
+volume: 0.8, mute: false, solo: false, clips: []
+});
+renderTracks();
+};
+document.getElementById("btnExport").onclick = async () => {
+const totalSec = tracks.reduce((max, t) =>
+Math.max(max, t.clips.reduce((m, c) => Math.max(m, c.start + c.buffer.duration), 0)), 1);
+const offline = new OfflineAudioContext(1, Math.ceil(totalSec * ctx.sampleRate), ctx.sampleRate);
+tracks.forEach(t => {
+if (t.mute) return;
+const g = offline.createGain();
+g.gain.value = t.volume;
+g.connect(offline.destination);
+t.clips.forEach(c => {
+const s = offline.createBufferSource();
+s.buffer = c.buffer;
+s.connect(g);
+s.start(c.start);
+});
+});
+const rendered = await offline.startRendering();
+const wavBlob = bufferToWav(rendered);
+const url = URL.createObjectURL(wavBlob);
+const a = document.createElement("a");
+a.href = url; a.download = "nightlights-studio-mix.wav"; a.click();
+};
+function bufferToWav(abuffer) {
+const numOfChan = abuffer.numberOfChannels, length = abuffer.length * numOfChan * 2 + 44;
+const buffer = new ArrayBuffer(length), view = new DataView(buffer);
+let pos = 0;
+const setUint16 = d => { view.setUint16(pos, d, true); pos += 2; };
+const setUint32 = d => { view.setUint32(pos, d, true); pos += 4; };
+setUint32(0x46464952); setUint32(length - 8); setUint32(0x45564157);
+setUint32(0x20746d66); setUint32(16); setUint16(1); setUint16(numOfChan);
+setUint32(abuffer.sampleRate); setUint32(abuffer.sampleRate * 2 * numOfChan);
+setUint16(numOfChan * 2); setUint16(16); setUint32(0x61746164); setUint32(length - pos - 4);
+const ch = abuffer.getChannelData(0);
+for (let i = 0; i < ch.length; i++) {
+const s = Math.max(-1, Math.min(1, ch[i]));
+view.setInt16(pos, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+pos += 2;
+}
+return new Blob([buffer], { type: "audio/wav" });
+}
+addGeneratedClip(0, "beat");
+addGeneratedClip(1, "bass");
