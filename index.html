@@ -13,13 +13,13 @@ header{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:12px
 .brand h1{margin:0;font:600 22px/1.1 Peignot,"Segoe UI",ui-sans-serif,system-ui,sans-serif;letter-spacing:.3px;color:#fff}
 .brand p{margin:3px 0 0;color:var(--dim);font-size:12px}
 .transport{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap}
-button,.btn{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;display:inline-block;transition:background .15s,border-color .15s,transform .05s}
+button,.btn{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px;cursor:pointer;display:inline-block;transition:background .15s,border-color .15s,transform .05s}
 button:active,.btn:active{transform:translateY(1px)}
 button:hover,.btn:hover{border-color:var(--lamp);background:#241735}
 button:focus-visible,input:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
-#play{background:var(--lamp);color:#1a0b2e;border-color:transparent;font-weight:600;min-width:84px}
+#play{background:var(--lamp);color:#1a0b2e;border-color:transparent;font-weight:600;min-width:68px}
 #play[aria-pressed="true"]{background:var(--glow)}
-#rec{min-width:96px}
+#rec{min-width:80px}
 #rec[aria-pressed="true"]{background:var(--red);color:#fff;border-color:transparent}
 #export[aria-pressed="true"]{color:var(--lamp);border-color:var(--lamp)}
 #clock{font-variant-numeric:tabular-nums;font-size:16px;min-width:170px;padding:6px 12px;border-radius:999px;background:var(--well);border:1px solid var(--line);color:var(--cyan)}
@@ -114,7 +114,7 @@ kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;font:inherit;co
 .presetRow select{font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
 @media (max-width:760px){
   body{grid-template-columns:minmax(0,1fr) !important;grid-template-rows:auto auto minmax(0,1fr) !important}
-  header{grid-column:1 !important;grid-row:1 !important}
+  header{grid-column:1 !important;grid-row:2 !important}
   .side{grid-column:1 !important;grid-row:2 !important;height:auto !important;min-height:0;width:auto !important;border-right:none;border-bottom:1px solid var(--line);padding:8px 10px;overflow:visible}
   main{grid-column:1 !important;grid-row:3 !important}
   .sidegrip,#sideToggle{display:none !important}
@@ -127,15 +127,15 @@ kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;font:inherit;co
 .side.expanded .sidegrip{display:none}
 .side.expanded details:not([open]){display:none}
 .side.expanded details[open]{min-height:100%;border:none;background:none}
-.folderbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.folderbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 8px;border-bottom:1px solid var(--line);background:var(--panel)}
 .folderbar[hidden]{display:none}
-.fbtn{font-weight:600;padding:6px 14px;border-radius:999px}
+.fbtn{font-weight:600;font-size:12px;padding:3px 10px;border-radius:999px}
 .fbtn[aria-pressed="true"]{border-color:var(--lamp);color:var(--lamp);background:#241735}
-.folderbar #sideToggle{margin-left:auto}
+.folderbar #sideToggle{margin-left:0}
 body{grid-template-columns:minmax(0,1fr) !important;grid-template-rows:auto auto minmax(0,1fr) !important}
 header,#folderBar,main{grid-column:1 !important}
-header{grid-row:1 !important}
-#folderBar{grid-row:2 !important}
+header{grid-row:2 !important}
+#folderBar{grid-row:1 !important}
 main{grid-row:3 !important}
 .side:not(.expanded){display:none !important}
 .sidegrip{display:none !important}
@@ -169,6 +169,24 @@ html,body{height:100%}
 .leavecard h2{margin:0;font-size:18px}
 .leavecard p{margin:0;color:var(--dim)}
 .leaverow{display:flex;gap:8px;flex-wrap:wrap}
+.folderbar .filetools{order:0;margin-left:auto;gap:6px;margin-right:0}
+.folderbar .filetools button,.folderbar .filetools .btn{padding:3px 9px;font-size:12px;border-radius:999px}
+.folderbar #metro,.folderbar #addTrack{padding:3px 9px;font-size:12px;border-radius:999px}
+.folderbar #themePick{padding:3px 8px;font-size:12px}
+.folderbar .ctl{font-size:12px}
+.folderbar .latPop{top:calc(100% + 6px)}
+.bpmdetect{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--well);color:var(--lamp);font-variant-numeric:tabular-nums;font-size:13px;font-weight:600;white-space:nowrap}
+.edittools button,.hbtns button,.bname button,.kitbar button,.fxtop button,.sbtns button,.presetRow button{padding:2px 6px;font-size:11px}
+.ctog{padding:0 7px;font-size:11px;border-radius:6px;line-height:18px;flex:none}
+header.collapsed > :not(.ctog),#folderBar.collapsed > :not(.ctog),.edittools.collapsed > :not(.ctog){display:none !important}
+header.collapsed,#folderBar.collapsed,.edittools.collapsed{padding-top:4px;padding-bottom:4px}
+#folderBar{position:relative}
+.settingspanel{position:absolute;top:calc(100% + 6px);left:0;z-index:60;display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:10px;min-width:260px;border-radius:var(--r);background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow)}
+.settingspanel[hidden]{display:none}
+.settingspanel .filetools{margin-left:0;flex-wrap:wrap}
+.settingspanel .fbtn{text-align:left}
+.ruler .hdr{display:flex;align-items:center;justify-content:flex-start;padding-left:8px}
+.ruler .bpmdetect{font-size:11px;padding:1px 8px;margin:0}
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -216,7 +234,6 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
     <button id="sideToggle" aria-expanded="true">Hide folders</button>
     <button id="play" aria-pressed="false">Play</button>
     <button id="pause">Pause</button>
-    <button id="fullBtn" aria-pressed="false">Fullscreen</button>
     <button id="stop">Stop</button>
     <button id="metro" aria-pressed="false">Metronome</button>
     <span class="latWrap">
@@ -232,7 +249,8 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
     </span>
     <button id="rec" aria-pressed="false">Record</button>
     <output id="clock">0:00.0</output>
-    <label class="ctl">Tempo <input id="bpm" type="range" min="60" max="180" value="96"><output id="bpmOut">96</output></label>
+    <span id="bpmDetect" class="bpmdetect" title="Tempo of the audio playing right now">BPM --</span>
+    <label class="ctl">Tempo <input id="bpm" type="range" min="10" max="300" value="96"><output id="bpmOut">96</output></label>
     <label class="ctl">Zoom <input id="zoom" type="range" min="20" max="220" value="80"></label>
     <label class="ctl">Master <input id="master" type="range" min="0" max="1" step="0.01" value="0.8"></label>
     <label class="ctl"><input id="snap" type="checkbox" checked> Snap to beat</label>
@@ -272,6 +290,10 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
     <summary>Piano roll</summary>
     <div id="rollBox" class="fitems"></div>
   </details>
+  <details class="folder" id="fProjects">
+    <summary>Shared projects</summary>
+    <div id="projBox" class="fitems"></div>
+  </details>
   <div id="sideGrip" class="sidegrip" title="Drag to resize"></div>
 </aside>
 <main>
@@ -289,8 +311,10 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
       <option value="gunshot">Gunshot</option><option value="auto">Automatic gunshot</option><option value="drop">Water drop</option>
       <option value="whistle">Whistle</option><option value="explosion">Explosion</option><option value="alien">Alien</option>
       <option value="stomp">Stomp</option><option value="starwars">Star Wars laser</option><option value="oof">Oof</option>
+      <option value="glass">Glass breaking</option>
     </select></label>
     <button id="sfxAdd">Add sound effect</button>
+    <button id="monBtn" aria-pressed="false">Monitor input</button>
     <button id="selAll">Select all tracks</button>
     <span id="selCount" class="ctl"></span>
     <button id="delSel">Delete</button>
@@ -304,7 +328,7 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
       <span class="ctl" id="atScale"></span>
       <label class="ctl">Key <select id="atKeySel"><option value="project">Project key</option><option value="0">C</option><option value="1">C#</option><option value="2">D</option><option value="3">D#</option><option value="4">E</option><option value="5">F</option><option value="6">F#</option><option value="7">G</option><option value="8">G#</option><option value="9">A</option><option value="10">A#</option><option value="11">B</option></select></label>
       <label class="ctl">Scale <select id="atScaleSel"><option value="project">Project scale</option><option value="Chromatic">Chromatic</option><option value="Major">Major</option><option value="Minor">Minor</option><option value="Dorian">Dorian</option><option value="Mixolydian">Mixolydian</option><option value="Major Pentatonic">Major Pentatonic</option><option value="Minor Pentatonic">Minor Pentatonic</option><option value="Blues">Blues</option></select></label>
-      <label class="ctl">Clarity <input id="atClarity" type="range" min="0.3" max="0.95" step="0.01" value="0.6"></label>
+      <label class="ctl">Clarity <input id="atClarity" type="range" min="0.2" max="0.95" step="0.01" value="0.45"></label>
       <label class="ctl">Min pitch <input id="atMin" type="range" min="60" max="300" step="1" value="70"> Hz</label>
       <label class="ctl">Max pitch <input id="atMax" type="range" min="300" max="1200" step="1" value="800"> Hz</label>
       <label class="ctl">Grain <select id="atGrain"><option value="1024">Tight</option><option value="2048" selected>Normal</option><option value="4096">Smooth</option></select></label>
@@ -366,7 +390,7 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
 const $ = id => document.getElementById(id);
 const HDR = 172;
 let px = 80, bpm = 96, sel = 0;
-let trackSet = new Set();
+let trackSet = new Set(), clipSet = new Set();
 
 const VOICES = [
   {name:'Kick',  kind:'kick',  vol:.9,         pat:'x...x...x...x...'},
@@ -494,10 +518,10 @@ function drawClip(c, cv, color = '#b26bff') {
     const s = Math.floor(x * per), e = Math.max(s + 1, Math.floor((x + 1) * per));
     let lo = 0, hi = 0;
     for (let j = s; j < e && j < n; j++) { if (c.wave.mn[j] < lo) lo = c.wave.mn[j]; if (c.wave.mx[j] > hi) hi = c.wave.mx[j]; }
-    g.globalAlpha = 1; g.fillStyle = color;
+    g.globalAlpha = 1; g.fillStyle = 'hsl(' + Math.round(x / w * 300) + ', 90%, 62%)';
     if (hi > 0) g.fillRect(x, mid - hi * k, 1, hi * k);
     g.globalAlpha = 0.5;
-    if (lo < 0) g.fillRect(x, mid, 1, -lo * k);
+    if (lo < 0) { g.fillStyle = 'hsl(' + Math.round(x / w * 300) + ', 90%, 45%)'; g.fillRect(x, mid, 1, -lo * k); }
   }
   g.globalAlpha = 1;
 }
@@ -531,10 +555,10 @@ function render() {
     nm.style.color = tr.color;
     h.append(nm, btns, v);
     const body = document.createElement('div');
-    body.className = 'body'; body.style.width = W + 'px'; body.style.setProperty('--bw', (barSec() * px) + 'px');
+    body.className = 'body'; body.style.width = W + 'px'; body.style.setProperty('--bw', (gridSec() * px) + 'px');
     tr.clips.forEach(c => {
       const el = document.createElement('div');
-      el.className = 'clip' + (c.live ? ' live' : '') + (c.id === selClip ? ' sel' : '');
+      el.className = 'clip' + (c.live ? ' live' : '') + (c.id === selClip || clipSet.has(c.id) ? ' sel' : '');
       el.dataset.id = c.id;
       el.style.left = (c.start * px) + 'px';
       el.style.width = Math.max(4, c.dur * px) + 'px';
@@ -551,7 +575,7 @@ function render() {
   placePlayhead();
   renderRoll();
   renderMixer();
-  $('selCount').textContent = trackSet.size > 1 ? trackSet.size + ' tracks selected' : '';
+  $('selCount').textContent = clipSet.size ? clipSet.size + ' takes selected' : (trackSet.size > 1 ? trackSet.size + ' tracks selected' : '');
 }
 function placePlayhead() { $('ph').style.left = (HDR + pos * px) + 'px'; }
 function updateClock() {
@@ -596,6 +620,7 @@ function play(from) {
   init(); stopSrc();
   playBus = ctx.createGain(); playBus.connect(master);
   playing = true; pos0 = from; t0 = ctx.currentTime + 0.05;
+  if (masterDirty) { buildMasterBus(); masterDirty = false; }
   tracks.forEach(buildBus);
   VOICES.forEach(buildChanBus);
   scheduleClips(from, t0);
@@ -1214,6 +1239,9 @@ $('roll').addEventListener('pointerup', () => { if (rollDrag) { rollDrag = null;
 // ---------- Extra drums ----------
 const DRUMS = [
   { name: 'Open Hat', kind: 'openhat' }, { name: 'Rim Shot', kind: 'rim' },
+  { name: 'Snare 2', kind: 'snare' }, { name: 'Snare 3', kind: 'snare' }, { name: 'Clap 2', kind: 'clap' },
+  { name: 'Closed Hat 2', kind: 'hat' }, { name: 'Kick 2', kind: 'kick' }, { name: 'Kick 3', kind: 'kick' },
+  { name: 'Floor Tom', kind: 'tom', f: 80 }, { name: 'Rack Tom', kind: 'tom', f: 150 },
   { name: 'Low Tom', kind: 'tom', f: 90 }, { name: 'Mid Tom', kind: 'tom', f: 130 },
   { name: 'High Tom', kind: 'tom', f: 180 }, { name: 'Conga', kind: 'tom', f: 240 },
   { name: 'Cowbell', kind: 'cowbell' }, { name: 'Shaker', kind: 'shaker' },
@@ -1746,7 +1774,7 @@ $('lanes').addEventListener('click', e => {
     selClip = mc.id; render(); return;
   }
   selClip = clipEl ? clipEl.dataset.id : null;
-  if (e.ctrlKey || e.metaKey || e.shiftKey) { trackSet.add(sel); trackSet.add(i); } else trackSet = new Set();
+  if (e.ctrlKey || e.metaKey || e.shiftKey) { trackSet.add(sel); trackSet.add(i); } else { trackSet = new Set(); clipSet = new Set(); }
   sel = i;
   const body = e.target.closest('.body');
   if (body) {
@@ -2500,7 +2528,7 @@ function duplicateTrack() {
   kitMsg(idxs.length > 1 ? idxs.length + ' tracks duplicated' : 'Track duplicated');
 }
 async function sfxBuffer(kind) {
-  const sr = 44100, dur = { siren: 3, laser: 0.6, riser: 3, impact: 2, fall: 2.2, airhorn: 1.6, gunshot: 0.6, auto: 1.2, drop: 0.8, whistle: 1.5, explosion: 2.5, alien: 2, stomp: 0.8, starwars: 0.8, oof: 0.6 }[kind] || 2;
+  const sr = 44100, dur = { siren: 3, laser: 0.6, riser: 3, impact: 2, fall: 2.2, airhorn: 1.6, gunshot: 0.6, auto: 1.2, drop: 0.8, whistle: 1.5, explosion: 2.5, alien: 2, stomp: 0.8, starwars: 0.8, oof: 0.6, glass: 1.6 }[kind] || 2;
   const oc = new OfflineAudioContext(1, Math.round(sr * dur), sr), g = oc.createGain();
   g.connect(oc.destination);
   const noise = () => {
@@ -2590,6 +2618,13 @@ async function sfxBuffer(kind) {
     lfo.frequency.value = 28; lg.gain.value = 40; lfo.connect(lg); lg.connect(o.frequency); lfo.start(0);
     g.gain.setValueAtTime(0.35, 0); g.gain.setValueAtTime(0.35, 0.45); g.gain.exponentialRampToValueAtTime(0.001, 0.6);
     o.connect(g); o.start(0); o.stop(0.7); lfo.stop(0.7);
+  } else if (kind === 'glass') {
+    for (let i = 0; i < 14; i++) {
+      const t0 = Math.random() * 0.35, src = noise(), hp = oc.createBiquadFilter(), sg = oc.createGain();
+      hp.type = 'highpass'; hp.frequency.value = 2500 + Math.random() * 4000;
+      sg.gain.setValueAtTime(0.25 + Math.random() * 0.4, t0); sg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.12 + Math.random() * 0.5);
+      src.connect(hp); hp.connect(sg); sg.connect(g); src.start(t0); src.stop(t0 + 0.7);
+    }
   } else if (kind === 'oof') {
     const o = oc.createOscillator(), bp = oc.createBiquadFilter();
     o.type = 'sawtooth'; o.frequency.setValueAtTime(230, 0); o.frequency.exponentialRampToValueAtTime(110, 0.45);
@@ -2631,6 +2666,12 @@ $('outDev').addEventListener('change', async e => {
   } else kitMsg('This browser cannot switch the output device');
 });
 $('splitBtn').addEventListener('click', splitAtPlayhead);
+$('gridSel').addEventListener('change', render);
+$('selAll').addEventListener('click', () => {
+  clipSet = new Set(tracks.flatMap(t => t.clips.filter(c => !c.live).map(c => c.id)));
+  trackSet = new Set(); selClip = null; render();
+  kitMsg(clipSet.size ? clipSet.size + ' takes selected. Delete, split or move them together' : 'There are no takes on the timeline yet');
+});
 $('dupTrack').addEventListener('click', duplicateTrack);
 $('sfxAdd').addEventListener('click', () => addSfx($('sfxSel').value));
 $('clipPitch').addEventListener('change', e => {
@@ -2703,7 +2744,8 @@ function autoTuneMono(x, sr, cfg) {
   return out;
 }
 function autoTuneSel() {
-  const c = selClip ? findClip(selClip) : null;
+  let c = selClip ? findClip(selClip) : null;
+  if (!c && tracks[sel]) c = tracks[sel].clips.find(x => !x.live && pos >= x.start && pos < x.start + x.dur) || null;
   if (!c || c.midi || !c.buf) { kitMsg('Select a recorded or imported take first'); return; }
   const owner = tracks.find(t => t.clips.includes(c));
   const sr = c.buf.sampleRate, o = Math.round((c.off || 0) * sr), len = Math.round(c.dur * sr);
@@ -2732,9 +2774,19 @@ $('atBox').append($('atBtn').closest('.atpanel'));
 // ---------- Multi-track split, delete, ripple ----------
 function splitAtPlayhead() {
   init();
-  const targets = trackSet.size ? [...trackSet] : [sel], keep = sel;
-  targets.forEach(ti => { if (!tracks[ti]) return; sel = ti; selClip = null; splitOne(); });
-  sel = keep;
+  const keepSel = sel, keepPos = pos, g = gridSec();
+  if ($('snap').checked) pos = Math.round(pos / g) * g;
+  const targets = trackSet.size ? [...trackSet] : [sel];
+  let done = 0;
+  targets.forEach(ti => {
+    const tr = tracks[ti]; if (!tr) return;
+    const hit = tr.clips.some(c => !c.live && pos > c.start + 0.001 && pos < c.start + c.dur - 0.001);
+    if (!hit) return;
+    sel = ti; selClip = null; splitOne(); done++;
+  });
+  sel = keepSel; pos = keepPos;
+  render(); updateClock();
+  kitMsg(done ? `Split ${done} take${done === 1 ? '' : 's'} at the playhead` : 'Nothing to split. Put the playhead inside a take on the selected track');
 }
 function removeClip(c) {
   const gap = c.dur, start = c.start;
@@ -2745,6 +2797,12 @@ function removeClip(c) {
   });
 }
 function deleteSelected() {
+  if (clipSet.size) {
+    [...clipSet].forEach(id => { const c = findClip(id); if (c) removeClip(c); });
+    clipSet = new Set(); selClip = null; render();
+    kitMsg('Removed the selected takes');
+    return;
+  }
   const targets = trackSet.size ? [...trackSet] : [sel];
   let removed = 0;
   if (selClip && !trackSet.size) {
@@ -2827,6 +2885,7 @@ async function saveProjectZip() {
   }
   const mix = await renderTracks(tracks, sr);
   if (mix) files.push({ name: 'full-mix.wav', data: encodeWavStereo(mix) });
+  for (const f of files) { if (f.name.startsWith('tracks/')) saveFile(new Blob([f.data], { type: 'audio/wav' }), f.name.replace('tracks/', '')); }
   if (!files.length) return;
   saveFile(makeZip(files), 'nightlights-project-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.zip');
   kitMsg(`Saved ${files.length} files in a zip. Instrument clips are not included as audio`);
@@ -2924,23 +2983,6 @@ function removeChannel(r) {
   kitMsg(name + ' removed from the beat');
 }
 $('rollBox').append($('rollSec'));
-// ---------- Fullscreen ----------
-(function fullscreenToggle() {
-  const fb = $('fullBtn');
-  fb.addEventListener('click', async () => {
-    try {
-      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
-      else await document.exitFullscreen();
-    } catch (err) {
-      kitMsg('Fullscreen is blocked in this window. Open the DAW in its own tab and try again');
-    }
-  });
-  document.addEventListener('fullscreenchange', () => {
-    const on = !!document.fullscreenElement;
-    fb.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
-    fb.setAttribute('aria-pressed', String(on));
-  });
-})();
 // ---------- Full screen (desktop, Android and iPad) ----------
 (function fullscreenToggle() {
   const btn = $('fsBtn');
@@ -3003,7 +3045,7 @@ $('rollBox').append($('rollSec'));
   let wasFs = false;
   const check = () => {
     if (inFs()) { wasFs = true; return; }
-    if (wasFs) { wasFs = false; modal.hidden = false; $('leaveModal').querySelector('[data-act="leaveContinue"]').focus(); }
+    if (wasFs) { wasFs = false; if (pickerOpen) return; modal.hidden = false; $('leaveModal').querySelector('[data-act="leaveContinue"]').focus(); }
   };
   document.addEventListener('fullscreenchange', check);
   document.addEventListener('webkitfullscreenchange', check);
@@ -3019,6 +3061,370 @@ $('rollBox').append($('rollSec'));
     }
   });
   modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.hidden = true; });
+})();
+// ---------- Rename a channel ----------
+$('beat').addEventListener('dblclick', e => {
+  const sp = e.target.closest('.bl span'); if (!sp) return;
+  const r = +sp.closest('.brow').dataset.r;
+  const name = prompt('Rename this channel', VOICES[r].name);
+  if (name && name.trim()) { VOICES[r].name = name.trim().slice(0, 30); buildBeat(); renderSynth(); }
+});
+
+// ---------- Opening a file picker should not count as leaving full screen ----------
+let pickerOpen = false, pickerTimer = null;
+document.addEventListener('click', e => {
+  if (e.target.closest('label.btn, input[type=file], #musicBox button, #presetBox button')) {
+    pickerOpen = true; clearTimeout(pickerTimer);
+    pickerTimer = setTimeout(() => { pickerOpen = false; }, 4000);
+  }
+}, true);
+document.addEventListener('change', () => { pickerOpen = false; });
+// ---------- Monitor a plugged-in instrument or mic while you play ----------
+let monStream = null, monSrc = null;
+function setMon(on) {
+  $('monBtn').setAttribute('aria-pressed', String(on));
+  $('monBtn').textContent = on ? 'Stop monitor' : 'Monitor input';
+}
+async function toggleMonitor() {
+  init();
+  if (monSrc) {
+    monSrc.disconnect(); monSrc = null;
+    if (monStream) monStream.getTracks().forEach(t => t.stop());
+    monStream = null; setMon(false); return;
+  }
+  try {
+    monStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints() });
+    monSrc = ctx.createMediaStreamSource(monStream);
+    monSrc.connect(master);
+    setMon(true);
+    kitMsg('Monitoring the selected input. Use headphones to avoid feedback');
+  } catch (err) { kitMsg('Allow microphone access to monitor your instrument'); }
+}
+$('monBtn').addEventListener('click', toggleMonitor);
+
+// ---------- FL Studio colours ----------
+THEMES['FL Studio'] = { ink: '#23262b', panel: '#2e3238', well: '#1f2226', line: '#434a53', beat: '#5a626c', text: '#e9edf2', dim: '#9aa4b0', lamp: '#ff9f1c', glow: '#ffb347', cyan: '#7fd3ff' };
+$('themePick').append(new Option('FL Studio', 'FL Studio'));
+// ---------- Shared projects: one saved version everyone can open, and your own copy stays yours ----------
+const MAX_PROJECT_BYTES = 20 * 1024 * 1024;
+let projectsDb = null, sharedProjects = [], openedProject = null;
+function serializeProject() {
+  const chIdx = inst => VOICES.indexOf(inst);
+  return {
+    v: 1, bpm,
+    channels: VOICES.map((v, r) => ({
+      name: v.name, kind: v.kind, f: v.f, patch: v.patch, pat: v.pat, notes: v.notes || [], fx: v.fx || [],
+      vol: bvol[r], pan: bpan[r], pitch: bpitch[r], muted: bmuted[r]
+    })),
+    tracks: tracks.map(t => ({
+      name: t.name, color: t.color, vol: t.vol, pan: t.pan || 0, mute: t.mute, solo: t.solo, fx: t.fx || [],
+      clips: t.clips.filter(c => !c.live).map(c => ({
+        name: c.name, start: c.start, dur: c.dur, off: c.off || 0, pitch: c.pitch || 0,
+        midi: !!c.midi, steps: c.steps, notes: c.notes, inst: c.midi ? chIdx(c.inst) : undefined,
+        wav: (!c.midi && c.buf) ? toBase64(encodeWavStereo(c.buf)) : undefined
+      }))
+    }))
+  };
+}
+async function loadProject(data) {
+  init(); pause();
+  if (!data || data.v !== 1 || !Array.isArray(data.channels) || !Array.isArray(data.tracks)) throw new Error('not a project file');
+  bpm = data.bpm || 96; $('bpm').value = bpm; $('bpmOut').textContent = bpm;
+  VOICES.length = 0; grid = []; bmuted.length = 0; bvol.length = 0; bpitch.length = 0; bpan.length = 0;
+  data.channels.forEach(c => {
+    VOICES.push({ name: c.name, kind: c.kind, f: c.f, patch: c.patch, pat: c.pat || '................', notes: c.notes || [], fx: c.fx || [], vol: c.vol, bus: undefined });
+    bvol.push(c.vol ?? .8); bpan.push(c.pan || 0); bpitch.push(c.pitch || 0); bmuted.push(!!c.muted);
+  });
+  kits = [{ name: 'Built-in', builtin: true, slots: VOICES.map(() => null) }]; kitIdx = 0;
+  const newTracks = [];
+  for (const t of data.tracks) {
+    const clips = [];
+    for (const c of t.clips) {
+      const base = { id: uid(), name: c.name, start: c.start, dur: c.dur, off: c.off || 0, pitch: c.pitch || 0, live: false };
+      if (c.midi) clips.push({ ...base, midi: true, steps: c.steps, notes: c.notes || [], inst: VOICES[c.inst] || VOICES[0], slot: undefined });
+      else if (c.wav) {
+        const buf = await ctx.decodeAudioData(fromBase64(c.wav));
+        clips.push({ ...base, buf, wave: waveOf(buf) });
+      }
+    }
+    newTracks.push({ name: t.name, color: t.color, vol: t.vol, pan: t.pan || 0, mute: !!t.mute, solo: !!t.solo, fx: t.fx || [], clips });
+  }
+  tracks = newTracks.length ? newTracks : [mkTrack('Track 1')];
+  sel = 0; trackSet = new Set(); selClip = null; editSel = null; rollChan = 0; chSel = 0;
+  buildBeat(); renderChanFx(); render(); renderFx();
+}
+async function uploadProject(name, docId) {
+  const assets = window.claude && window.claude.use ? await window.claude.use('assets') : null;
+  if (!assets || !projectsDb) { kitMsg('Only Contributors can save to the shared projects'); return; }
+  kitMsg('Saving the shared project...');
+  try {
+    const blob = new Blob([JSON.stringify(serializeProject())], { type: 'application/json' });
+    if (blob.size > MAX_PROJECT_BYTES) { kitMsg('This project is too big to share. Remove some audio, or save it as a zip instead'); return; }
+    const r = await assets.upload(blob, { type: 'application/json' });
+    if (docId) await projectsDb.collection('projects').doc(docId).update({ name, url: r.url, updatedAt: Date.now() });
+    else await projectsDb.collection('projects').add({ name, url: r.url, updatedAt: Date.now() });
+    kitMsg('Shared project saved. Others can open it from Shared projects');
+  } catch (err) { kitMsg('Could not save the shared project' + (err && err.code ? ' (' + err.code + ')' : '')); }
+}
+function renderProjects() {
+  const box = $('projBox'); box.innerHTML = '';
+  const top = document.createElement('div'); top.className = 'presetRow';
+  top.append(mkBtn('Save as new shared project', 'projNew', false));
+  box.append(top);
+  const note = document.createElement('p'); note.className = 'fxempty';
+  note.textContent = openedProject ? 'Working on: ' + openedProject.name + '. Your own copy stays on this device until you save it.' : 'You are working on your own copy. Opening a shared project replaces it.';
+  box.append(note);
+  if (!sharedProjects.length) { const p = document.createElement('p'); p.className = 'fxempty'; p.textContent = 'No shared projects yet.'; box.append(p); }
+  sharedProjects.forEach(p => {
+    const card = document.createElement('div'); card.className = 'musicItem';
+    const t = document.createElement('strong'); t.textContent = p.name;
+    const when = document.createElement('span'); when.className = 'fxempty';
+    when.textContent = 'Last saved ' + new Date(p.updatedAt || 0).toLocaleString();
+    const row = document.createElement('div'); row.className = 'presetRow';
+    const o = mkBtn('Open', 'projOpen', false); o.dataset.id = p.id;
+    const u = mkBtn('Save my version here', 'projUpdate', false); u.dataset.id = p.id; u.dataset.name = p.name;
+    row.append(o, u); card.append(t, when, row); box.append(card);
+  });
+}
+$('projBox').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'projNew') {
+    const name = prompt('Name the shared project'); if (!name || !name.trim()) return;
+    await uploadProject(name.trim().slice(0, 60), null); return;
+  }
+  const doc = sharedProjects.find(p => p.id === b.dataset.id);
+  if (!doc) return;
+  if (act === 'projUpdate') { await uploadProject(b.dataset.name, doc.id); return; }
+  if (act === 'projOpen') {
+    if (!safeSrc(doc.url)) { kitMsg('That project cannot be opened'); return; }
+    if (!confirm('Open "' + doc.name + '"? This replaces the project you are working on now. Save yours first if you want to keep it.')) return;
+    try {
+      kitMsg('Opening the shared project...');
+      const data = await (await fetch(doc.url)).json();
+      await loadProject(data);
+      openedProject = doc; renderProjects();
+      kitMsg('Opened "' + doc.name + '". Your changes now save to this shared project only when you press Save my version here');
+    } catch (err) { kitMsg('Could not open that project'); }
+  }
+});
+(async () => {
+  const db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+  if (!db) { renderProjects(); return; }
+  projectsDb = db;
+  db.collection('projects').orderBy('updatedAt', 'desc').onSnapshot(snap => {
+    sharedProjects = snap.docs.map(d => ({ id: d.id, ...(d.data() || {}) })).filter(p => typeof p.name === 'string' && typeof p.url === 'string');
+    renderProjects();
+  }, () => renderProjects());
+  renderProjects();
+})();
+// ---------- File tools live on the folder bar at the top ----------
+(function moveFileTools() {
+  const ft = document.querySelector('.filetools');
+  if (ft) $('folderBar').insertBefore(ft, $('sideToggle'));
+})();
+// ---------- Top bar: folder tabs, file tools and the common controls ----------
+(function topBar() {
+  const fb = $('folderBar'), ref = fb.querySelector('.filetools');
+  const themeEl = $('themePick'), latEl = document.querySelector('.latWrap');
+  [$('metro'), $('addTrack'), themeEl, latEl].forEach(el => { if (el) fb.insertBefore(el, ref); });
+  // Snap sits next to the Grid menu, so the grid and snapping are in one place
+  const snapLab = $('snap').closest('label');
+  snapLab.lastChild.textContent = ' Snap';
+  $('gridSel').closest('label').before(snapLab);
+  // Snapping and the grid both feed into split and drag
+  $('gridSel').addEventListener('change', render);
+})();
+// ---------- Detected BPM of the audio that is playing ----------
+let bpmAn = null, bpmBuf = null, bpmEnv = [], bpmLast = null;
+function ensureBpmAnalyser() {
+  if (!ctx || bpmAn) return;
+  bpmAn = ctx.createAnalyser(); bpmAn.fftSize = 1024;
+  bpmBuf = new Float32Array(bpmAn.fftSize);
+  master.connect(bpmAn); // an analyser only listens, it does not change the sound
+}
+function sampleLoudness() {
+  ensureBpmAnalyser();
+  if (!bpmAn) return;
+  bpmAn.getFloatTimeDomainData(bpmBuf);
+  let sum = 0; for (let i = 0; i < bpmBuf.length; i++) sum += bpmBuf[i] * bpmBuf[i];
+  bpmEnv.push(Math.sqrt(sum / bpmBuf.length));
+  if (bpmEnv.length > 800) bpmEnv.shift(); // about 8 seconds at 100 readings a second
+}
+function estimateBpm() {
+  const e = bpmEnv, n = e.length;
+  if (n < 300) return null;
+  const nov = new Float32Array(n);
+  let mean = 0;
+  for (let i = 1; i < n; i++) { nov[i] = Math.max(0, e[i] - e[i - 1]); mean += nov[i]; }
+  mean /= n;
+  for (let i = 0; i < n; i++) nov[i] = Math.max(0, nov[i] - mean);
+  let zero = 0; for (let i = 0; i < n; i++) zero += nov[i] * nov[i];
+  if (zero < 1e-9) return null; // silence
+  let best = 0, bestLag = 0;
+  for (let lag = 30; lag <= 100; lag++) { // 60 to 200 BPM at 100 readings a second
+    let c = 0; for (let i = 0; i + lag < n; i++) c += nov[i] * nov[i + lag];
+    c /= (n - lag);
+    if (c > best) { best = c; bestLag = lag; }
+  }
+  if (!bestLag || best / (zero / n) < 0.2) return null; // too weak to trust
+  let bpm = 6000 / bestLag;
+  while (bpm < 70) bpm *= 2;
+  while (bpm > 180) bpm /= 2;
+  return Math.round(bpm);
+}
+setInterval(sampleLoudness, 10);
+setInterval(() => {
+  const el = $('bpmDetect');
+  if (!el) return;
+  if (playing) {
+    const b = estimateBpm();
+    if (b !== null) bpmLast = b;
+    el.textContent = b !== null ? 'BPM ' + b : (bpmLast ? 'BPM ' + bpmLast + ' (last)' : 'BPM --');
+    el.style.opacity = b !== null ? '1' : '0.7';
+  } else {
+    el.textContent = bpmLast ? 'BPM ' + bpmLast + ' (last)' : 'BPM --';
+    el.style.opacity = '0.7';
+  }
+}, 400);
+// ---------- Everything except the timeline can collapse ----------
+(function collapsibleBars() {
+  const bars = [document.querySelector('header'), $('folderBar'), document.querySelector('.edittools')];
+  bars.forEach(bar => {
+    if (!bar) return;
+    const t = document.createElement('button');
+    t.type = 'button'; t.className = 'ctog';
+    t.setAttribute('aria-expanded', 'true'); t.textContent = '\u25B2';
+    t.title = 'Collapse or expand this bar';
+    t.addEventListener('click', () => {
+      const closed = bar.classList.toggle('collapsed');
+      t.textContent = closed ? '\u25BC' : '\u25B2';
+      t.setAttribute('aria-expanded', String(!closed));
+    });
+    bar.insertBefore(t, bar.firstChild);
+  });
+})();
+// ---------- Settings: everything from the top bar except the four workspace folders ----------
+(function settingsPanel() {
+  const fb = $('folderBar');
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'fbtn'; btn.id = 'settingsBtn';
+  btn.textContent = 'Settings'; btn.setAttribute('aria-expanded', 'false');
+  const panel = document.createElement('div');
+  panel.id = 'settingsPanel'; panel.className = 'settingspanel'; panel.hidden = true;
+  // Folder tabs that move into Settings (the four workspace folders stay on the bar)
+  const moveToSettings = ['Auto-tune', 'Shared music', 'Shared projects'];
+  fb.querySelectorAll('.fbtn').forEach(b => { if (moveToSettings.includes(b.textContent.trim())) panel.append(b); });
+  [fb.querySelector('.filetools'), $('metro'), $('addTrack'), $('themePick'), document.querySelector('.latWrap')]
+    .forEach(el => { if (el) panel.append(el); });
+  fb.insertBefore(btn, $('sideToggle'));
+  fb.insertBefore(panel, $('sideToggle'));
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    panel.hidden = !panel.hidden;
+    btn.setAttribute('aria-expanded', String(!panel.hidden));
+  });
+  panel.addEventListener('click', e => {
+    if (e.target.closest('.fbtn') && e.target.closest('.fbtn') !== btn) { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+  });
+  document.addEventListener('click', e => {
+    if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+  });
+})();
+// ---------- BPM readout sits in the bar above the tracks ----------
+document.querySelector('.ruler .hdr').append($('bpmDetect'));
+// ---------- Sound effects in the Beat making and Mixing folders ----------
+(function sfxInFolders() {
+  const label = $('sfxSel').closest('label'), btn = $('sfxAdd');
+  const beat = $('fBeat');
+  const mixFolder = [...$('side').querySelectorAll('details')]
+    .find(d => d.querySelector('summary') && d.querySelector('summary').textContent.trim() === 'Mixing');
+  // Beat making keeps the original controls
+  const w1 = document.createElement('div'); w1.className = 'fitems';
+  w1.append(label, btn);
+  beat.append(w1);
+  // Mixing gets its own copy that plays the same effects
+  const lab2 = label.cloneNode(true);
+  const sel2 = lab2.querySelector('select'); sel2.id = 'sfxSel2';
+  const btn2 = btn.cloneNode(true); btn2.id = 'sfxAdd2';
+  btn2.addEventListener('click', () => { $('sfxSel').value = sel2.value; addSfx(sel2.value); });
+  const w2 = document.createElement('div'); w2.className = 'fitems';
+  w2.append(lab2, btn2);
+  if (mixFolder) mixFolder.append(w2);
+})();
+// ---------- Monitor input lives in Settings ----------
+$('settingsPanel').append($('monBtn'));
+// ---------- Mastering: an effects chain on the whole mix, after every track ----------
+let masterFx = [], masterBus = null, masterDirty = true;
+function buildMasterBus() {
+  if (!ctx || !master) return;
+  master.disconnect();
+  if (masterBus) masterBus.out.disconnect();
+  const out = ctx.createGain();
+  let prev = master; const fxs = [];
+  masterFx.forEach(f => { const fx = mkFx(f.type, f.p); prev.connect(fx.in); prev = fx.out; fxs.push(fx); });
+  prev.connect(out);
+  out.connect(ctx.destination);
+  out.connect(recDest);
+  if (bpmAn) out.connect(bpmAn);
+  masterBus = { out, fxs };
+}
+function renderMasterFx() {
+  const box = $('masterFxBox'); if (!box) return;
+  box.innerHTML = '';
+  const head = document.createElement('div'); head.className = 'fxhead';
+  const as = document.createElement('select'); as.id = 'masterAddSel'; as.setAttribute('aria-label', 'Mastering effect to add');
+  Object.keys(FX_DEFS).forEach(k => as.append(new Option(FX_DEFS[k].name, k)));
+  head.append(as, mkBtn('Add to master', 'mfxadd', false), mkBtn('Add mastering chain', 'mfxchain', false));
+  box.append(head);
+  masterFx.forEach((f, idx) => {
+    const def = FX_DEFS[f.type], card = document.createElement('div'); card.className = 'fxcard';
+    const top = document.createElement('div'); top.className = 'fxtop';
+    const t = document.createElement('strong'); t.textContent = def.name;
+    const up = mkBtn('Up', 'mfxup', false), dn = mkBtn('Down', 'mfxdown', false), del = mkBtn('Remove', 'mfxdel', false);
+    [up, dn, del].forEach(b => { b.dataset.i = idx; });
+    top.append(t, up, dn, del); card.append(top);
+    Object.keys(def.r).forEach(k => {
+      const [min, max, step] = def.r[k];
+      const lab = document.createElement('label'); lab.className = 'fxp';
+      const sp = document.createElement('span'); sp.textContent = FX_LABELS[k] || k;
+      const inp = document.createElement('input');
+      inp.type = 'range'; inp.min = min; inp.max = max; inp.step = step; inp.value = f.p[k];
+      inp.dataset.mfxi = idx; inp.dataset.mfxk = k; inp.setAttribute('aria-label', def.name + ' ' + (FX_LABELS[k] || k));
+      lab.append(sp, inp); card.append(lab);
+    });
+    box.append(card);
+  });
+  if (!masterFx.length) { const p = document.createElement('p'); p.className = 'fxempty'; p.textContent = 'Nothing on the master yet. Add a mastering chain to shape the whole mix.'; box.append(p); }
+}
+(function masterPanel() {
+  const mixFolder = [...$('side').querySelectorAll('details')]
+    .find(d => d.querySelector('summary') && d.querySelector('summary').textContent.trim() === 'Mixing');
+  const box = document.createElement('div'); box.id = 'masterFxBox'; box.className = 'fxBox';
+  if (mixFolder) mixFolder.append(box);
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const act = b.dataset.act;
+    if (act === 'mfxchain') {
+      masterFx = ['eq', 'comp', 'sat', 'limiter'].map(t => ({ type: t, p: { ...FX_DEFS[t].p } }));
+    } else if (act === 'mfxadd') {
+      const type = $('masterAddSel').value; masterFx.push({ type, p: { ...FX_DEFS[type].p } });
+    } else {
+      const i = +b.dataset.i;
+      if (act === 'mfxdel') masterFx.splice(i, 1);
+      else if (act === 'mfxup' && i > 0) [masterFx[i - 1], masterFx[i]] = [masterFx[i], masterFx[i - 1]];
+      else if (act === 'mfxdown' && i < masterFx.length - 1) [masterFx[i], masterFx[i + 1]] = [masterFx[i + 1], masterFx[i]];
+    }
+    masterDirty = true; renderMasterFx();
+  });
+  box.addEventListener('input', e => {
+    const t = e.target; if (t.dataset.mfxk === undefined) return;
+    const f = masterFx[+t.dataset.mfxi];
+    f.p[t.dataset.mfxk] = +t.value;
+    const live = masterBus && masterBus.fxs[+t.dataset.mfxi];
+    if (live && live.type === f.type) live.set(f.p);
+  });
+  renderMasterFx();
 })();
 </script>
 </body>
