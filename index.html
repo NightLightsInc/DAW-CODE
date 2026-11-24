@@ -190,6 +190,7 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
     <button id="stop">Stop</button>
     <button id="metro" aria-pressed="false">Metronome</button>
     <button id="latency">Latency test</button>
+    <button id="fixLatency">Fix latency</button>
     <button id="rec" aria-pressed="false">Record</button>
     <output id="clock">0:00.0</output>
     <label class="ctl">Tempo <input id="bpm" type="range" min="60" max="180" value="96"><output id="bpmOut">96</output></label>
@@ -2164,6 +2165,22 @@ function applyTheme(name) {
 })();
 // ---------- Low-latency microphone request ----------
 const LOW_AUDIO = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, latency: { ideal: 0 } };
+// ---------- Fix latency: measure twice, average, remember the result ----------
+try { const saved = parseFloat(localStorage.getItem('nl-latency')); if (Number.isFinite(saved)) latencySec = saved; } catch (e) {}
+async function fixLatency() {
+  latencySec = null;
+  const results = [];
+  kitMsg('Fixing latency: running two passes. Keep the room quiet');
+  for (let i = 0; i < 2; i++) {
+    await latencyTest();
+    if (latencySec !== null) results.push(latencySec);
+  }
+  if (!results.length) return;
+  latencySec = results.reduce((a, b) => a + b, 0) / results.length;
+  try { localStorage.setItem('nl-latency', String(latencySec)); } catch (e) {}
+  kitMsg(`Latency fixed. New takes shift ${Math.round(latencySec * 1000)} ms earlier, and this is remembered for next time`);
+}
+$('fixLatency').addEventListener('click', fixLatency);
 </script>
 </body>
 </html>
