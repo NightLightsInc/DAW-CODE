@@ -135,6 +135,9 @@ header{grid-row:1 !important}
 main{grid-row:3 !important}
 .side:not(.expanded){display:none !important}
 .sidegrip{display:none !important}
+.presetEd{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:var(--r);background:var(--well)}
+#presetName{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+.presetRow button{padding:5px 9px;font-size:12px}
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -1816,6 +1819,44 @@ function cleanFx(list) {
     return { type: f.type, p };
   });
 }
+let presetDraft = null;
+function renderDraft() {
+  const d = presetDraft, wrap = document.createElement('div');
+  wrap.className = 'presetEd';
+  const nameIn = document.createElement('input');
+  nameIn.type = 'text'; nameIn.id = 'presetName'; nameIn.maxLength = 40; nameIn.value = d.name;
+  nameIn.placeholder = 'Preset name'; nameIn.setAttribute('aria-label', 'Preset name');
+  const add = document.createElement('select'); add.id = 'presetAddSel'; add.setAttribute('aria-label', 'Effect to add');
+  Object.keys(FX_DEFS).forEach(k => add.append(new Option(FX_DEFS[k].name, k)));
+  const addRow = document.createElement('div'); addRow.className = 'presetRow';
+  addRow.append(add, mkBtn('Add effect', 'pAdd', false));
+  wrap.append(nameIn, addRow);
+  d.fx.forEach((f, idx) => {
+    const def = FX_DEFS[f.type], card = document.createElement('div'); card.className = 'fxcard';
+    const top = document.createElement('div'); top.className = 'fxtop';
+    const t = document.createElement('strong'); t.textContent = def.name;
+    const up = mkBtn('Up', 'pUp', false), dn = mkBtn('Down', 'pDown', false), del = mkBtn('Remove', 'pDel', false);
+    [up, dn, del].forEach(b => { b.dataset.i = idx; });
+    top.append(t, up, dn, del); card.append(top);
+    Object.keys(def.r).forEach(k => {
+      const [min, max, step] = def.r[k];
+      const lab = document.createElement('label'); lab.className = 'fxp';
+      const sp = document.createElement('span'); sp.textContent = FX_LABELS[k];
+      const inp = document.createElement('input');
+      inp.type = 'range'; inp.min = min; inp.max = max; inp.step = step; inp.value = f.p[k];
+      inp.dataset.pi = idx; inp.dataset.pk2 = k; inp.setAttribute('aria-label', def.name + ' ' + FX_LABELS[k]);
+      lab.append(sp, inp); card.append(lab);
+    });
+    wrap.append(card);
+  });
+  if (!d.fx.length) { const p = document.createElement('p'); p.className = 'fxempty'; p.textContent = 'No effects yet. Add one above.'; wrap.append(p); }
+  const acts = document.createElement('div'); acts.className = 'presetRow';
+  acts.append(mkBtn('Save as my preset', 'pSave', false));
+  if (d.id) acts.append(mkBtn('Delete shared preset', 'pRemove', false));
+  acts.append(mkBtn('Close editor', 'pClose', false));
+  wrap.append(acts);
+  return wrap;
+}
 function renderPresets() {
   const box = $('presetBox'); box.innerHTML = '';
   const row = document.createElement('div'); row.className = 'presetRow';
@@ -1823,10 +1864,13 @@ function renderPresets() {
   pick.append(new Option('Choose a preset...', ''));
   Object.keys(FX_PRESETS).forEach(n => pick.append(new Option(n, 'b:' + n)));
   sharedPresets.forEach(p => pick.append(new Option('Shared: ' + p.name, 's:' + p.id)));
-  row.append(pick, mkBtn('Apply to FX track', 'presetApply', false), mkBtn('Save FX track as shared preset', 'presetSave', false));
+  if (presetDraft && presetDraft.key) pick.value = presetDraft.key;
+  row.append(pick, mkBtn('Edit selected', 'presetEdit', false), mkBtn('New preset', 'presetNew', false), mkBtn('Apply to FX track', 'presetApply', false));
+  box.append(row);
+  if (presetDraft) box.append(renderDraft());
   const note = document.createElement('p'); note.className = 'fxempty';
   note.textContent = presetsDb ? 'Shared presets are visible to everyone who opens this page.' : 'Sign in to load and save shared presets.';
-  box.append(row, note);
+  box.append(note);
 }
 function renderPresetsInit() {
   renderPresets();
@@ -1842,27 +1886,56 @@ function renderPresetsInit() {
     renderPresets();
   })();
 }
+$('presetBox').addEventListener('input', e => {
+  if (!presetDraft) return;
+  if (e.target.id === 'presetName') presetDraft.name = e.target.value;
+  if (e.target.dataset.pi !== undefined) presetDraft.fx[+e.target.dataset.pi].p[e.target.dataset.pk2] = +e.target.value;
+});
 $('presetBox').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
-  const tr = tracks[fxSel];
-  if (b.dataset.act === 'presetApply') {
+  const tr = tracks[fxSel], act = b.dataset.act;
+  if (act === 'presetEdit') {
     const v = $('presetPick').value;
-    if (!v) { kitMsg('Choose a preset first'); return; }
-    if (v.startsWith('b:')) tr.fx = cleanFx(FX_PRESETS[v.slice(2)].map(t => ({ type: t })));
-    else { const p = sharedPresets.find(x => x.id === v.slice(2)); if (p) tr.fx = cleanFx(p.fx); }
-    renderFx();
-    kitMsg(tr.name + ' now uses the preset. It takes effect the next time you press Play');
+    if (!v) { kitMsg('Choose a preset to edit'); return; }
+    if (v.startsWith('b:')) { const n = v.slice(2); presetDraft = { key: v, id: null, name: n, fx: cleanFx(FX_PRESETS[n].map(t => ({ type: t }))) }; }
+    else { const p = sharedPresets.find(x => x.id === v.slice(2)); if (p) presetDraft = { key: v, id: p.id, name: p.name, fx: cleanFx(p.fx) }; }
+    renderPresets(); return;
   }
-  if (b.dataset.act === 'presetSave') {
+  if (act === 'presetNew') { presetDraft = { key: null, id: null, name: 'My preset', fx: [] }; renderPresets(); return; }
+  if (act === 'presetApply') {
+    const fx = presetDraft ? presetDraft.fx : null;
+    if (fx) tr.fx = cleanFx(fx);
+    else {
+      const v = $('presetPick').value;
+      if (!v) { kitMsg('Choose a preset first'); return; }
+      if (v.startsWith('b:')) tr.fx = cleanFx(FX_PRESETS[v.slice(2)].map(t => ({ type: t })));
+      else { const p = sharedPresets.find(x => x.id === v.slice(2)); if (p) tr.fx = cleanFx(p.fx); }
+    }
+    renderFx(); kitMsg(tr.name + ' now uses the preset. It takes effect the next time you press Play'); return;
+  }
+  if (!presetDraft) return;
+  const d = presetDraft, i = +b.dataset.i;
+  if (act === 'pAdd') { const type = $('presetAddSel').value; d.fx.push({ type, p: { ...FX_DEFS[type].p } }); }
+  if (act === 'pDel') d.fx.splice(i, 1);
+  if (act === 'pUp' && i > 0) [d.fx[i - 1], d.fx[i]] = [d.fx[i], d.fx[i - 1]];
+  if (act === 'pDown' && i < d.fx.length - 1) [d.fx[i], d.fx[i + 1]] = [d.fx[i + 1], d.fx[i]];
+  if (act === 'pClose') { presetDraft = null; }
+  if (act === 'pSave') {
     if (!presetsDb) { kitMsg('Sign in to save shared presets'); return; }
-    if (!tr.fx || !tr.fx.length) { kitMsg('Add effects to the track first'); return; }
-    const name = prompt('Name this preset');
-    if (!name || !name.trim()) return;
+    const name = (d.name || '').trim() || 'My preset', fx = cleanFx(d.fx);
+    if (!fx.length) { kitMsg('Add at least one effect before saving'); return; }
     try {
-      await presetsDb.collection('presets').add({ name: name.trim().slice(0, 40), fx: cleanFx(tr.fx) });
+      if (d.id) await presetsDb.collection('presets').doc(d.id).update({ name, fx });
+      else { const ref = await presetsDb.collection('presets').add({ name, fx }); d.id = ref.id; }
+      d.name = name; d.key = 's:' + d.id;
       kitMsg('Preset saved for everyone');
-    } catch (err) { kitMsg('Could not save the preset. Only Contributors can save shared presets'); }
+    } catch (err) { kitMsg('Could not save. Only Contributors can save shared presets'); }
   }
+  if (act === 'pRemove' && d.id) {
+    try { await presetsDb.collection('presets').doc(d.id).delete(); presetDraft = null; kitMsg('Shared preset deleted'); }
+    catch (err) { kitMsg('Could not delete that preset'); }
+  }
+  renderPresets();
 });
 
 // ---------- Layout: beat tools in the left folder, piano roll in the main area ----------
