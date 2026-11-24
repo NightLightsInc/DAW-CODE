@@ -147,6 +147,9 @@ main{grid-row:3 !important}
 .latPop[hidden]{display:none}
 .latRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
 .latRow input{width:70px;font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+.edittools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.edittools select,.edittools input[type=number]{font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:6px;padding:4px 8px;width:auto}
+.edittools input[type=number]{width:64px}
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -200,6 +203,8 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
         <strong>Latency compensation</strong>
         <label class="latRow">Shift new takes earlier by <input id="latMs" type="number" min="0" max="500" step="1"> ms</label>
         <div class="latRow"><button id="latAuto">Auto-detect</button><button id="latReset">Reset</button></div>
+        <label class="latRow">Input <select id="inDev"></select></label>
+        <label class="latRow">Output <select id="outDev"></select></label>
         <p id="latStatus" class="fxempty"></p>
       </div>
     </span>
@@ -239,6 +244,20 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
   <div id="sideGrip" class="sidegrip" title="Drag to resize"></div>
 </aside>
 <main>
+  <div class="edittools">
+    <label class="ctl">Grid <select id="gridSel">
+      <option value="4">Bar</option><option value="2">1/2</option><option value="1" selected>1/4</option>
+      <option value="0.5">1/8</option><option value="0.25">1/16</option><option value="0.125">1/32</option>
+    </select></label>
+    <button id="splitBtn">Split at playhead</button>
+    <button id="dupTrack">Duplicate track</button>
+    <label class="ctl">Pitch <input id="clipPitch" type="number" min="-24" max="24" step="1" value="0"> st</label>
+    <label class="ctl">Sound effect <select id="sfxSel">
+      <option value="siren">Siren</option><option value="laser">Laser</option><option value="riser">Riser</option>
+      <option value="impact">Impact</option><option value="fall">Falling tone</option><option value="airhorn">Air horn</option>
+    </select></label>
+    <button id="sfxAdd">Add sound effect</button>
+  </div>
   <div class="arr" id="arr">
     <div class="inner" id="inner">
       <div class="row ruler"><div class="hdr"></div><div class="body" id="rulerBody"></div></div>
@@ -291,6 +310,7 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
 const $ = id => document.getElementById(id);
 const HDR = 172;
 let px = 80, bpm = 96, sel = 0;
+let trackSet = new Set();
 
 const VOICES = [
   {name:'Kick',  kind:'kick',  vol:.9,         pat:'x...x...x...x...'},
@@ -445,7 +465,7 @@ function render() {
   const lanes = $('lanes'); lanes.innerHTML = '';
   tracks.forEach((tr, i) => {
     const row = document.createElement('div');
-    row.className = 'row lane' + (i === sel ? ' sel' : ''); row.dataset.i = i;
+    row.className = 'row lane' + (i === sel || trackSet.has(i) ? ' sel' : ''); row.dataset.i = i;
     const h = document.createElement('div'); h.className = 'hdr';
     const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = tr.name;
     const btns = document.createElement('div'); btns.className = 'hbtns';
@@ -498,6 +518,7 @@ function scheduleClips(from, when) {
       if (!c.buf || c.start + c.dur <= from) return;
       const s = ctx.createBufferSource(); s.buffer = c.buf;
       const g = ctx.createGain(); g.gain.value = tr.vol;
+      s.playbackRate.value = Math.pow(2, (c.pitch || 0) / 12);
       s.connect(g); g.connect(tr.bus.in);
       s.start(when + Math.max(0, c.start - from), Math.max(0, from - c.start));
       srcs.push(s);
@@ -551,7 +572,7 @@ async function startRec() {
   if (!tracks[sel]) return;
   if (!micStream) {
     try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: LOW_AUDIO });
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints() });
     } catch (err) { $('clock').textContent = 'Mic blocked'; return; }
   }
   const target = tracks[sel];
@@ -1025,7 +1046,7 @@ function scheduleMidi(from, when, bus) {
         const st = c.start + n.s * step, len = n.len * step;
         if (st + len <= from) return;
         noteLen = len; noteBend = n.b || 0;
-        voice({ ...c.inst, f: midiFreq(n.p) }, tr.vol * (n.v ?? 1), n.s, when + Math.max(0, st - from), c.slot, -1, tr.bus.in);
+        voice({ ...c.inst, f: midiFreq(n.p + (c.pitch || 0)) }, tr.vol * (n.v ?? 1), n.s, when + Math.max(0, st - from), c.slot, -1, tr.bus.in);
         noteLen = null; noteBend = 0;
       });
     });
@@ -1500,7 +1521,7 @@ document.addEventListener('pointermove', e => {
   if (!drag.moved && Math.abs(dx * px) < 4) return;
   drag.moved = true;
   let s = Math.max(0, drag.s0 + dx);
-  if ($('snap').checked) { const beat = 60 / bpm; s = Math.round(s / beat) * beat; }
+  if ($('snap').checked) { const g = gridSec(); s = Math.round(s / g) * g; }
   drag.c.start = s;
   drag.el.style.left = (s * px) + 'px';
 });
@@ -1535,6 +1556,7 @@ $('lanes').addEventListener('click', e => {
     selClip = mc.id; render(); return;
   }
   selClip = clipEl ? clipEl.dataset.id : null;
+  if (e.ctrlKey || e.metaKey || e.shiftKey) { trackSet.add(sel); trackSet.add(i); } else trackSet = new Set();
   sel = i;
   const body = e.target.closest('.body');
   if (body) {
@@ -1739,7 +1761,7 @@ $('metro').addEventListener('click', () => {
 async function latencyTest() {
   init();
   let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ audio: LOW_AUDIO }); }
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints() }); }
   catch (err) { kitMsg('Allow microphone access to run the latency test'); return; }
   const src = ctx.createMediaStreamSource(stream), sp = ctx.createScriptProcessor(256, 1, 1), silent = ctx.createGain();
   silent.gain.value = 0;
@@ -2215,6 +2237,130 @@ async function fixLatency() {
     show();
   });
 })();
+// ---------- Editing: grid, split, duplicate, pitch, sound effects, audio devices ----------
+function gridSec() { return +$('gridSel').value * 60 / bpm; }
+function sliceBuf(buf, a, b) {
+  const out = ctx.createBuffer(buf.numberOfChannels, Math.max(1, b - a), buf.sampleRate);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) out.getChannelData(ch).set(buf.getChannelData(ch).subarray(a, b));
+  return out;
+}
+function splitAtPlayhead() {
+  init();
+  const tr = tracks[sel];
+  const inside = x => x && !x.live && pos > x.start && pos < x.start + x.dur;
+  let c = selClip ? findClip(selClip) : null;
+  if (!inside(c)) c = tr ? tr.clips.find(inside) : null;
+  if (!c) { kitMsg('Put the playhead inside a take, then split it'); return; }
+  const owner = tracks.find(t => t.clips.includes(c));
+  const cut = pos - c.start;
+  let left, right;
+  if (c.midi) {
+    const cs = Math.round(cut / sd());
+    if (cs <= 0 || cs >= c.steps) { kitMsg('Move the playhead further inside the take to split it'); return; }
+    left = { ...c, id: uid(), steps: cs, dur: cs * sd(), notes: c.notes.filter(n => n.s < cs).map(n => ({ ...n, len: Math.min(n.len, cs - n.s) })) };
+    right = { ...c, id: uid(), start: c.start + cs * sd(), steps: c.steps - cs, dur: (c.steps - cs) * sd(), notes: c.notes.filter(n => n.s >= cs).map(n => ({ ...n, s: n.s - cs })) };
+  } else {
+    const idx = Math.round(cut * c.buf.sampleRate), len = c.buf.length;
+    if (idx <= 0 || idx >= len) { kitMsg('Move the playhead further inside the take to split it'); return; }
+    const lb = sliceBuf(c.buf, 0, idx), rb = sliceBuf(c.buf, idx, len);
+    left = { ...c, id: uid(), buf: lb, dur: lb.duration, wave: waveOf(lb) };
+    right = { ...c, id: uid(), start: c.start + cut, buf: rb, dur: rb.duration, wave: waveOf(rb) };
+  }
+  owner.clips = owner.clips.filter(x => x !== c).concat([left, right]);
+  selClip = left.id; render();
+  kitMsg('Split. Select a piece and press Delete to remove empty space');
+}
+function duplicateTrack() {
+  const idxs = (trackSet.size ? [...trackSet] : [sel]).filter(i => tracks[i]).sort((x, y) => x - y);
+  if (!idxs.length) return;
+  let at = idxs[idxs.length - 1] + 1;
+  idxs.forEach(i => {
+    const t = tracks[i];
+    tracks.splice(at++, 0, {
+      ...t, name: t.name + ' copy', color: COLORS[tracks.length % COLORS.length], bus: undefined,
+      fx: (t.fx || []).map(f => ({ type: f.type, p: { ...f.p } })),
+      clips: t.clips.filter(c => !c.live).map(c => ({ ...c, id: uid(), notes: c.notes ? c.notes.map(n => ({ ...n })) : undefined }))
+    });
+  });
+  sel = at - 1; trackSet = new Set(); render();
+  kitMsg(idxs.length > 1 ? idxs.length + ' tracks duplicated' : 'Track duplicated');
+}
+async function sfxBuffer(kind) {
+  const sr = 44100, dur = { siren: 3, laser: 0.6, riser: 3, impact: 2, fall: 2.2, airhorn: 1.6 }[kind] || 2;
+  const oc = new OfflineAudioContext(1, Math.round(sr * dur), sr), g = oc.createGain();
+  g.connect(oc.destination);
+  const noise = () => {
+    const nb = oc.createBuffer(1, sr * dur, sr), d = nb.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = oc.createBufferSource(); src.buffer = nb; return src;
+  };
+  if (kind === 'siren') {
+    const o = oc.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(600, 0);
+    for (let i = 1; i <= 6; i++) o.frequency.linearRampToValueAtTime(i % 2 ? 1100 : 600, i * 0.5);
+    g.gain.value = 0.25; o.connect(g); o.start(0); o.stop(dur);
+  } else if (kind === 'laser') {
+    const o = oc.createOscillator(); o.frequency.setValueAtTime(2000, 0); o.frequency.exponentialRampToValueAtTime(150, 0.4);
+    g.gain.setValueAtTime(0.5, 0); g.gain.exponentialRampToValueAtTime(0.001, 0.45);
+    o.connect(g); o.start(0); o.stop(dur);
+  } else if (kind === 'riser') {
+    const src = noise(), bp = oc.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 2;
+    bp.frequency.setValueAtTime(200, 0); bp.frequency.exponentialRampToValueAtTime(8000, dur);
+    g.gain.setValueAtTime(0, 0); g.gain.linearRampToValueAtTime(0.6, dur);
+    src.connect(bp); bp.connect(g); src.start(0);
+  } else if (kind === 'impact') {
+    const o = oc.createOscillator(); o.frequency.setValueAtTime(120, 0); o.frequency.exponentialRampToValueAtTime(30, 1.2);
+    g.gain.setValueAtTime(1, 0); g.gain.exponentialRampToValueAtTime(0.001, 1.6);
+    o.connect(g); o.start(0); o.stop(dur);
+    const src = noise(), lp = oc.createBiquadFilter(), ng = oc.createGain(); lp.frequency.value = 800;
+    ng.gain.setValueAtTime(0.5, 0); ng.gain.exponentialRampToValueAtTime(0.001, 0.2);
+    src.connect(lp); lp.connect(ng); ng.connect(g); src.start(0);
+  } else if (kind === 'fall') {
+    const o = oc.createOscillator(); o.frequency.setValueAtTime(900, 0); o.frequency.exponentialRampToValueAtTime(60, dur);
+    g.gain.setValueAtTime(0.5, 0); g.gain.linearRampToValueAtTime(0.001, dur);
+    o.connect(g); o.start(0); o.stop(dur);
+  } else {
+    [440, 554, 659].forEach(f => { const o = oc.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; const og = oc.createGain(); og.gain.value = 0.15; o.connect(og); og.connect(g); o.start(0); o.stop(dur); });
+    g.gain.setValueAtTime(0, 0); g.gain.linearRampToValueAtTime(1, 0.02); g.gain.setValueAtTime(1, 1.2); g.gain.linearRampToValueAtTime(0, 1.4);
+  }
+  return oc.startRendering();
+}
+async function addSfx(kind) {
+  init();
+  const tr = tracks[sel]; if (!tr) return;
+  const buf = await sfxBuffer(kind);
+  const clip = { id: uid(), name: $('sfxSel').selectedOptions[0].textContent, start: pos, dur: buf.duration, buf, wave: waveOf(buf) };
+  tr.clips.push(clip); selClip = clip.id; render();
+}
+let inDevId = '', outDevId = '';
+function micConstraints() { const a = { ...LOW_AUDIO }; if (inDevId) a.deviceId = { exact: inDevId }; return a; }
+async function populateDevices() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+  const list = await navigator.mediaDevices.enumerateDevices();
+  const fill = (el, kind, cur) => {
+    el.innerHTML = ''; el.append(new Option('System default', ''));
+    list.filter(d => d.kind === kind).forEach((d, i) => el.append(new Option(d.label || (kind + ' ' + (i + 1)), d.deviceId)));
+    el.value = cur;
+  };
+  fill($('inDev'), 'audioinput', inDevId); fill($('outDev'), 'audiooutput', outDevId);
+}
+$('latencyBtn').addEventListener('click', populateDevices);
+$('inDev').addEventListener('change', e => { inDevId = e.target.value; });
+$('outDev').addEventListener('change', async e => {
+  outDevId = e.target.value; init();
+  if (ctx && ctx.setSinkId) {
+    try { await ctx.setSinkId(outDevId); kitMsg('Output device set'); }
+    catch (err) { kitMsg('This browser cannot switch the output device'); }
+  } else kitMsg('This browser cannot switch the output device');
+});
+$('splitBtn').addEventListener('click', splitAtPlayhead);
+$('dupTrack').addEventListener('click', duplicateTrack);
+$('sfxAdd').addEventListener('click', () => addSfx($('sfxSel').value));
+$('clipPitch').addEventListener('change', e => {
+  const c = selClip ? findClip(selClip) : null;
+  if (!c || c.live) { kitMsg('Select a take first, then set its pitch'); return; }
+  c.pitch = Math.max(-24, Math.min(24, Math.round(+e.target.value) || 0));
+  kitMsg(c.name + ' pitch set to ' + c.pitch + ' semitones');
+});
 </script>
 </body>
 </html>
