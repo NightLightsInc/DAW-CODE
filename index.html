@@ -73,8 +73,8 @@ section.beat{padding:18px 22px 28px}
 section.beat h2{margin:0 0 12px;font-size:15px;font-weight:600;letter-spacing:.2px}
 section.beat h2 small{color:var(--dim);font-weight:400;font-size:12px;margin-left:8px}
 .rackWrap{overflow-x:auto;padding-bottom:6px}
-.brow{min-width:820px;display:grid;grid-template-columns:300px 130px repeat(16,1fr);gap:4px;align-items:center;margin-bottom:4px;padding:3px 0;border-bottom:1px solid rgba(46,31,71,.5)}
-.bname{display:flex;align-items:center;gap:5px;min-width:0}
+.brow{min-width:1000px;display:grid;grid-template-columns:300px 200px repeat(16,1fr);gap:4px;align-items:center;margin-bottom:4px;padding:3px 0;border-bottom:1px solid rgba(46,31,71,.5)}
+.bname{display:flex;flex-wrap:wrap;align-items:center;gap:4px 5px;min-width:0}
 .bname span{min-width:52px}
 .bl{display:flex;flex-direction:column;min-width:0;width:74px}
 .bl small{color:var(--dim);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -87,9 +87,11 @@ section.beat h2 small{color:var(--dim);font-weight:400;font-size:12px;margin-lef
 .bname button[aria-pressed="true"]{color:var(--lamp);border-color:var(--lamp)}
 .brow.muted .step.on{opacity:.3}
 .brow input[type=range]{width:100%;accent-color:var(--lamp)}
-.tune{display:flex;flex-direction:column;gap:3px}
+.tune{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
 .tune input{height:14px;margin:0}
-.bname button{padding:2px 6px;font-size:11px;border-radius:6px}
+.tune input[type=range]{width:64px}
+.tune .numbox{width:50px;margin-left:0}
+.bname button{padding:2px 5px;font-size:10px;border-radius:6px;white-space:nowrap}
 .grip{cursor:grab;color:var(--dim);padding:0 2px;user-select:none;font-size:14px}
 .pos{width:46px;font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:6px;padding:2px 4px}
 .step{height:30px;border-radius:7px;background:#160d24;border:1px solid var(--line);padding:0;cursor:pointer;transition:background .1s,transform .05s}
@@ -736,7 +738,7 @@ function buildBeat() {
     const xb = mkBtn('Remove', 'rmch', false); xb.dataset.r = r; xb.setAttribute('aria-label', 'Remove ' + v.name); xb.title = 'Remove this channel';
     nm.append(xb);
     const rb = mkBtn('Roll', 'roll', false); rb.dataset.r = r; nm.append(rb);
-    if (v.kind === 'synth' || slots[r]) { const tl = mkBtn('Timeline', 'totl', false); tl.dataset.r = r; nm.append(tl); }
+    const tl = mkBtn('To timeline', 'totl', false); tl.dataset.r = r; tl.title = 'Add this channel\'s pattern to the timeline'; nm.append(tl);
     if (v.kind === 'synth') { const eb = mkBtn('Edit', 'edit', false); eb.dataset.r = r; nm.append(eb); }
     if (slots[r]) {
       const cb = mkBtn('×', 'clear', false); cb.dataset.r = r; cb.setAttribute('aria-label', `Remove sample from ${v.name}`);
