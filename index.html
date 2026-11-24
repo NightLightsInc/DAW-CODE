@@ -155,6 +155,8 @@ main{grid-row:3 !important}
 .edittools select,.edittools input[type=number]{font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:6px;padding:4px 8px;width:auto}
 .edittools input[type=number]{width:64px}
 .atpanel{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;padding:4px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--well)}
+html,body{height:100%}
+@supports (height:100dvh){ body{height:100dvh} }
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -192,6 +194,7 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
     <button id="export" aria-pressed="false">Export mix</button>
     <div id="exportMenu" class="exportMenu" hidden><button data-fmt="wav">WAV</button><button data-fmt="mp3">MP3</button><button data-fmt="mp4">MP4</button></div>
     <button id="saveTrack">Save project (.zip)</button>
+    <button id="fsBtn" aria-pressed="false">Full screen</button>
   </div>
   <div class="brand">
     <h1>NightLights Inc. Studio DAW</h1>
@@ -201,6 +204,7 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
     <button id="sideToggle" aria-expanded="true">Hide folders</button>
     <button id="play" aria-pressed="false">Play</button>
     <button id="pause">Pause</button>
+    <button id="fullBtn" aria-pressed="false">Fullscreen</button>
     <button id="stop">Stop</button>
     <button id="metro" aria-pressed="false">Metronome</button>
     <span class="latWrap">
@@ -2887,6 +2891,50 @@ function removeChannel(r) {
   kitMsg(name + ' removed from the beat');
 }
 $('rollBox').append($('rollSec'));
+// ---------- Fullscreen ----------
+(function fullscreenToggle() {
+  const fb = $('fullBtn');
+  fb.addEventListener('click', async () => {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch (err) {
+      kitMsg('Fullscreen is blocked in this window. Open the DAW in its own tab and try again');
+    }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    const on = !!document.fullscreenElement;
+    fb.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+    fb.setAttribute('aria-pressed', String(on));
+  });
+})();
+// ---------- Full screen (desktop, Android and iPad) ----------
+(function fullscreenToggle() {
+  const btn = $('fsBtn');
+  const inFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+  function sync() {
+    btn.setAttribute('aria-pressed', String(inFs()));
+    btn.textContent = inFs() ? 'Exit full screen' : 'Full screen';
+  }
+  btn.addEventListener('click', async () => {
+    const el = document.documentElement;
+    try {
+      if (inFs()) {
+        await (document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen());
+      } else if (el.requestFullscreen || el.webkitRequestFullscreen) {
+        await (el.requestFullscreen ? el.requestFullscreen() : el.webkitRequestFullscreen());
+      } else {
+        kitMsg('This browser cannot open full screen. On iPhone, use Share > Add to Home Screen');
+      }
+    } catch (err) {
+      kitMsg('Full screen was blocked. Check that this page is allowed to use full screen');
+    }
+    sync();
+  });
+  document.addEventListener('fullscreenchange', sync);
+  document.addEventListener('webkitfullscreenchange', sync);
+  sync();
+})();
 </script>
 </body>
 </html>
