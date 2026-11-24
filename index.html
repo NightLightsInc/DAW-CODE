@@ -76,7 +76,9 @@ section.beat h2 small{color:var(--dim);font-weight:400;font-size:12px;margin-lef
 .brow{min-width:1000px;display:grid;grid-template-columns:300px 200px repeat(16,1fr);gap:4px;align-items:center;margin-bottom:4px;padding:3px 0;border-bottom:1px solid rgba(46,31,71,.5)}
 .bname{display:flex;flex-wrap:wrap;align-items:center;gap:4px 5px;min-width:0}
 .bname span{min-width:52px}
-.bl{display:flex;flex-direction:column;min-width:0;width:74px}
+.bl{display:flex;flex-direction:column;min-width:0;flex:1 1 100%;order:-1}
+.bname .grip,.bname .pos{order:0}
+.bname > *{flex-shrink:0}
 .bl small{color:var(--dim);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kitbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--well)}
 .kitbar select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
