@@ -120,8 +120,9 @@ kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;font:inherit;co
   .side.expanded details:not([open]){display:none}
 }
 .side.expanded{position:fixed !important;inset:0;width:100vw !important;height:100vh;max-width:none;z-index:70;padding:18px 22px;border:none;background:var(--ink);box-shadow:none}
-.side.expanded .sidegrip,.side.expanded details:not(#fBeat){display:none}
-.side.expanded #fBeat{min-height:100%;border:none;background:none}
+.side.expanded .sidegrip{display:none}
+.side.expanded details:not([open]){display:none}
+.side.expanded details[open]{min-height:100%;border:none;background:none}
 .folderbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
 .folderbar[hidden]{display:none}
 .fbtn{font-weight:600;padding:6px 14px;border-radius:999px}
@@ -300,7 +301,7 @@ const fmt = s => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`
 // ---------- Audio engine ----------
 function init() {
   if (!ctx) {
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
     master = ctx.createGain();
     master.gain.value = +$('master').value;
     master.connect(ctx.destination);
@@ -529,11 +530,11 @@ async function startRec() {
     } catch (err) { $('clock').textContent = 'Mic blocked'; return; }
   }
   const target = tracks[sel];
-  const clip = { id: uid(), name: 'Take ' + (target.clips.length + 1), start: pos, dur: 0, wave: { mn: [], mx: [] }, buf: null, live: true };
+  const clip = { id: uid(), name: 'Take ' + (target.clips.length + 1), start: Math.max(0, pos - latComp()), dur: 0, wave: { mn: [], mx: [] }, buf: null, live: true };
   target.clips.push(clip);
   const r = { clip, target, chunks: [], n: 0, bmn: Infinity, bmx: -Infinity, bcount: 0, bin: Math.round(ctx.sampleRate / BPS) };
   r.src = ctx.createMediaStreamSource(micStream);
-  r.proc = ctx.createScriptProcessor(4096, 1, 1);
+  r.proc = ctx.createScriptProcessor(256, 1, 1);
   r.z = ctx.createGain(); r.z.gain.value = 0;
   r.proc.onaudioprocess = e => {
     const d = e.inputBuffer.getChannelData(0);
@@ -1692,6 +1693,7 @@ async function latencyTest() {
     if (pk > 0.05) heard = ctx.currentTime;
   }
   stream.getTracks().forEach(t => t.stop());
+  if (heard !== null) latencySec = heard - t0;
   if (heard === null) kitMsg('No test click heard. Turn up your speakers and try again');
   else kitMsg(`Round trip about ${Math.round((heard - t0) * 1000)} ms, output latency ${Math.round((ctx.outputLatency || ctx.baseLatency || 0) * 1000)} ms`);
 }
@@ -1906,6 +1908,12 @@ renderPresetsInit();
   bar.append(hide);
   document.querySelector('.shell').before(bar);
 })();
+// ---------- Recording latency compensation ----------
+let latencySec = null;
+function latComp() {
+  if (latencySec !== null) return latencySec;
+  return ctx ? (ctx.outputLatency || ctx.baseLatency || 0) : 0;
+}
 </script>
 </body>
 </html>
