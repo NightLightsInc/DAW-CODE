@@ -140,6 +140,8 @@ main{grid-row:3 !important}
 .presetRow button{padding:5px 9px;font-size:12px}
 .musicItem{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);border-radius:var(--r);background:var(--well)}
 .musicItem audio{width:100%}
+.clipdup{position:absolute;top:2px;right:34px;z-index:2;padding:0 6px;font-size:11px;line-height:16px;background:rgba(0,0,0,.6)}
+#themePick{font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -451,7 +453,8 @@ function render() {
       const lb = document.createElement('span'); lb.className = 'cl'; lb.textContent = c.name || 'Take';
       el.style.setProperty('--tc', tr.color);
       const del = document.createElement('button'); del.className = 'clipdel'; del.textContent = '×'; del.setAttribute('aria-label', 'Delete take');
-      el.append(cv, lb, del); body.append(el);
+      const dup = document.createElement('button'); dup.className = 'clipdup'; dup.textContent = 'Dup'; dup.setAttribute('aria-label', 'Duplicate take');
+      el.append(cv, lb, dup, del); body.append(el);
       c.midi ? drawMidi(c, cv, tr.color) : drawClip(c, cv, tr.color);
     });
     row.append(h, body); lanes.append(row);
@@ -535,7 +538,7 @@ async function startRec() {
   if (!tracks[sel]) return;
   if (!micStream) {
     try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: LOW_AUDIO });
     } catch (err) { $('clock').textContent = 'Mic blocked'; return; }
   }
   const target = tracks[sel];
@@ -548,6 +551,8 @@ async function startRec() {
   r.proc.onaudioprocess = e => {
     const d = e.inputBuffer.getChannelData(0);
     r.chunks.push(new Float32Array(d)); r.n += d.length;
+    if (!r.f) r.f = { t: ctx.currentTime, n: r.n };
+    r.l = { t: ctx.currentTime, n: r.n };
     for (let i = 0; i < d.length; i++) {
       const v = d[i];
       if (v < r.bmn) r.bmn = v;
@@ -570,9 +575,18 @@ function stopRec() {
   if (!r.n) {
     r.target.clips = r.target.clips.filter(x => x !== c);
   } else {
-    const buf = ctx.createBuffer(1, r.n, ctx.sampleRate);
-    const out = buf.getChannelData(0); let o = 0;
-    r.chunks.forEach(a => { out.set(a, o); o += a.length; });
+    const raw = new Float32Array(r.n); let o = 0;
+    r.chunks.forEach(a => { raw.set(a, o); o += a.length; });
+    // The mic and the output run on separate clocks. Compare how long the mic really ran
+    // against the audio clock and stretch the take so it stays in step with the timeline.
+    const ratio = (r.f && r.l && r.l.n - r.f.n > ctx.sampleRate * 2) ? (r.l.t - r.f.t) / ((r.l.n - r.f.n) / ctx.sampleRate) : 1;
+    const outLen = Math.max(1, Math.round(r.n * (Math.abs(ratio - 1) > 0.00005 ? ratio : 1)));
+    const buf = ctx.createBuffer(1, outLen, ctx.sampleRate), outD = buf.getChannelData(0);
+    const k = (r.n - 1) / Math.max(1, outLen - 1);
+    for (let i = 0; i < outLen; i++) {
+      const x = i * k, i0 = Math.floor(x), i1 = Math.min(r.n - 1, i0 + 1), f = x - i0;
+      outD[i] = raw[i0] * (1 - f) + raw[i1] * f;
+    }
     c.buf = buf; c.dur = buf.duration; c.wave = waveOf(buf);
   }
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
@@ -1458,7 +1472,7 @@ $('rulerBody').addEventListener('click', e => {
 let drag = null, justDragged = false;
 $('lanes').addEventListener('pointerdown', e => {
   const el = e.target.closest('.clip');
-  if (!el || e.button !== 0 || e.target.closest('.clipdel')) return;
+  if (!el || e.button !== 0 || e.target.closest('.clipdel') || e.target.closest('.clipdup')) return;
   const ti = +el.closest('.lane').dataset.i;
   const c = tracks[ti].clips.find(x => x.id === el.dataset.id);
   if (!c || c.live) return;
@@ -1499,6 +1513,7 @@ $('lanes').addEventListener('click', e => {
   const row = e.target.closest('.lane'); if (!row) return;
   const i = +row.dataset.i, tr = tracks[i];
   const b = e.target.closest('button');
+  if (b && b.classList.contains('clipdup')) { duplicateClip(b.closest('.clip').dataset.id); return; }
   if (b && b.classList.contains('clipdel')) { deleteClip(b.closest('.clip').dataset.id); return; }
   if (b) { if (b.dataset.act === 'mute') tr.mute = !tr.mute; else tr.solo = !tr.solo; render(); return; }
   const clipEl = e.target.closest('.clip');
@@ -1711,30 +1726,45 @@ $('metro').addEventListener('click', () => {
 async function latencyTest() {
   init();
   let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: LOW_AUDIO }); }
   catch (err) { kitMsg('Allow microphone access to run the latency test'); return; }
-  const an = ctx.createAnalyser(); an.fftSize = 2048;
-  const micSrc = ctx.createMediaStreamSource(stream), silent = ctx.createGain();
+  const src = ctx.createMediaStreamSource(stream), sp = ctx.createScriptProcessor(256, 1, 1), silent = ctx.createGain();
   silent.gain.value = 0;
-  micSrc.connect(an); an.connect(silent); silent.connect(ctx.destination);
-  const buf = new Float32Array(an.fftSize), t0 = ctx.currentTime + 0.3;
-  const o = ctx.createOscillator(), g = ctx.createGain();
-  o.frequency.value = 1000;
-  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.9, t0 + 0.002); g.gain.linearRampToValueAtTime(0, t0 + 0.02);
-  o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + 0.03);
-  kitMsg('Listening for the test click...');
-  const deadline = performance.now() + 2500; let heard = null;
-  while (performance.now() < deadline && heard === null) {
-    await new Promise(r => requestAnimationFrame(r));
-    if (ctx.currentTime < t0) continue;
-    an.getFloatTimeDomainData(buf);
-    let pk = 0; for (let i = 0; i < buf.length; i++) pk = Math.max(pk, Math.abs(buf[i]));
-    if (pk > 0.03) heard = ctx.currentTime;
-  }
-  stream.getTracks().forEach(t => t.stop());
-  if (heard !== null) latencySec = heard - t0;
-  if (heard === null) kitMsg('No test click heard. Turn up your speakers and try again');
-  else kitMsg(`Round trip about ${Math.round((heard - t0) * 1000)} ms, output latency ${Math.round((ctx.outputLatency || ctx.baseLatency || 0) * 1000)} ms`);
+  src.connect(sp); sp.connect(silent); silent.connect(ctx.destination);
+  const sr = ctx.sampleRate, chunks = [];
+  let c0 = null;
+  sp.onaudioprocess = e => {
+    if (c0 === null) c0 = ctx.currentTime - e.inputBuffer.length / sr;
+    chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  };
+  const offsets = [0.5, 1.0, 1.5, 2.0, 2.5], tStart = ctx.currentTime + 0.3;
+  offsets.forEach(off => {
+    const t = tStart + off, o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = 1500;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.9, t + 0.002); g.gain.linearRampToValueAtTime(0, t + 0.02);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.03);
+  });
+  kitMsg('Playing test clicks...');
+  await new Promise(r => setTimeout(r, 3400));
+  sp.disconnect(); src.disconnect(); stream.getTracks().forEach(t => t.stop());
+  const total = chunks.reduce((n, a) => n + a.length, 0), all = new Float32Array(total);
+  let w = 0; chunks.forEach(a => { all.set(a, w); w += a.length; });
+  if (c0 === null || total === 0) { kitMsg('No microphone signal. Check the microphone permission'); return; }
+  let peak = 0; for (let i = 0; i < total; i++) peak = Math.max(peak, Math.abs(all[i]));
+  if (peak < 0.005) { kitMsg('No test click heard. Turn up your speakers and try again'); return; }
+  const thr = peak * 0.3, found = [];
+  offsets.forEach(off => {
+    const expect = tStart + off, from = Math.max(0, Math.floor((expect - c0) * sr) - Math.floor(0.1 * sr));
+    const to = Math.min(total - 1, Math.floor((expect - c0) * sr) + Math.floor(0.3 * sr));
+    for (let i = from; i <= to; i++) {
+      if (Math.abs(all[i]) >= thr) { found.push((c0 + i / sr) - expect); break; }
+    }
+  });
+  if (!found.length) { kitMsg('No test click heard. Turn up your speakers and try again'); return; }
+  found.sort((x, y) => x - y);
+  const median = found[Math.floor(found.length / 2)];
+  latencySec = Math.max(0, median);
+  kitMsg(`Round trip ${Math.round(latencySec * 1000)} ms from ${found.length} clicks. Recordings will be shifted to match`);
 }
 $('latency').addEventListener('click', latencyTest);
 
@@ -2095,6 +2125,45 @@ $('musicBox').addEventListener('change', e => {
   }, () => renderMusic([]));
 })();
 renderMusic([]);
+// ---------- Duplicate takes ----------
+function duplicateClip(id) {
+  for (const tr of tracks) {
+    const c = tr.clips.find(x => x.id === id);
+    if (!c || c.live) continue;
+    const copy = { ...c, id: uid(), name: (c.name || 'Take') + ' copy', start: c.start + c.dur };
+    if (c.notes) copy.notes = c.notes.map(n => ({ ...n }));
+    tr.clips.push(copy); selClip = copy.id; render();
+    return;
+  }
+}
+
+// ---------- Themes ----------
+const THEMES = {
+  'Night Purple': { ink: '#0d0716', panel: '#1a1027', well: '#120a1e', line: '#2e1f47', beat: '#4a2f73', text: '#f1e9ff', dim: '#9b8bb8', lamp: '#b26bff', glow: '#e05cff', cyan: '#d6a6ff' },
+  'Ocean Blue': { ink: '#06111f', panel: '#0e1d33', well: '#091628', line: '#1d3658', beat: '#2a5585', text: '#e6f3ff', dim: '#86a6c6', lamp: '#4fb3ff', glow: '#2fe0ff', cyan: '#a6e4ff' },
+  'Ember': { ink: '#140804', panel: '#241108', well: '#1a0b05', line: '#4a2412', beat: '#7a3a1a', text: '#fff1e6', dim: '#c09a84', lamp: '#ff8a3d', glow: '#ff5e3a', cyan: '#ffc48a' },
+  'Forest': { ink: '#06120a', panel: '#0e2016', well: '#0a1a10', line: '#1f4a2e', beat: '#2f6b44', text: '#eaf7ee', dim: '#8fb59b', lamp: '#5fd38a', glow: '#9be15d', cyan: '#b8f5cc' },
+  'Rose': { ink: '#170810', panel: '#2a1020', well: '#1d0a16', line: '#4d1f3a', beat: '#7a2f5a', text: '#fff0f6', dim: '#c79ab0', lamp: '#ff6fae', glow: '#ff4f9a', cyan: '#ffc2dc' },
+  'Graphite': { ink: '#0b0b0c', panel: '#17171a', well: '#101012', line: '#2c2c31', beat: '#48484f', text: '#f2f2f4', dim: '#9a9aa3', lamp: '#d0d0d6', glow: '#ffffff', cyan: '#e8e8ee' }
+};
+function applyTheme(name) {
+  const t = THEMES[name] || THEMES['Night Purple'], st = document.documentElement.style;
+  Object.entries(t).forEach(([k, v]) => st.setProperty('--' + k, v));
+  try { localStorage.setItem('nl-theme', name); } catch (e) {}
+}
+(function themePicker() {
+  const tp = document.createElement('select');
+  tp.id = 'themePick'; tp.setAttribute('aria-label', 'Theme');
+  Object.keys(THEMES).forEach(n => tp.append(new Option(n, n)));
+  let saved = null;
+  try { saved = localStorage.getItem('nl-theme'); } catch (e) {}
+  tp.value = THEMES[saved] ? saved : 'Night Purple';
+  applyTheme(tp.value);
+  tp.addEventListener('change', () => applyTheme(tp.value));
+  document.querySelector('.transport').prepend(tp);
+})();
+// ---------- Low-latency microphone request ----------
+const LOW_AUDIO = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, latency: { ideal: 0 } };
 </script>
 </body>
 </html>
