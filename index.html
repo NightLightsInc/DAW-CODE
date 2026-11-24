@@ -488,7 +488,7 @@ function render() {
       const del = document.createElement('button'); del.className = 'clipdel'; del.textContent = '×'; del.setAttribute('aria-label', 'Delete take');
       const dup = document.createElement('button'); dup.className = 'clipdup'; dup.textContent = 'Dup'; dup.setAttribute('aria-label', 'Duplicate take');
       el.append(cv, lb, dup, del); body.append(el);
-      c.midi ? drawMidi(c, cv, tr.color) : drawClip(c, cv, tr.color);
+      c.midi ? drawMidi(c, cv, tr.color) : drawClip(trimView(c), cv, tr.color);
     });
     row.append(h, body); lanes.append(row);
   });
@@ -518,9 +518,10 @@ function scheduleClips(from, when) {
       if (!c.buf || c.start + c.dur <= from) return;
       const s = ctx.createBufferSource(); s.buffer = c.buf;
       const g = ctx.createGain(); g.gain.value = tr.vol;
-      s.playbackRate.value = Math.pow(2, (c.pitch || 0) / 12);
+      const rate = Math.pow(2, (c.pitch || 0) / 12), into = Math.max(0, from - c.start);
+      s.playbackRate.value = rate;
       s.connect(g); g.connect(tr.bus.in);
-      s.start(when + Math.max(0, c.start - from), Math.max(0, from - c.start));
+      s.start(when + Math.max(0, c.start - from), (c.off || 0) + into * rate, Math.max(0.01, (c.dur - into) * rate));
       srcs.push(s);
     });
   });
@@ -1511,12 +1512,33 @@ $('lanes').addEventListener('pointerdown', e => {
   const c = tracks[ti].clips.find(x => x.id === el.dataset.id);
   if (!c || c.live) return;
   // midi clips are moved by dragging; their notes are edited in the piano roll
+  if (!c.midi && !c.live && c.buf) {
+    const box = el.getBoundingClientRect(), x = e.clientX - box.left;
+    if (x <= 8 || box.width - x <= 8) {
+      drag = { mode: x <= 8 ? 'trimL' : 'trimR', c, el, ti, x0: e.clientX, s0: c.start, off0: c.off || 0, dur0: c.dur, moved: false };
+      el.setPointerCapture(e.pointerId);
+      return;
+    }
+  }
   drag = { c, el, ti, x0: e.clientX, s0: c.start, moved: false };
   el.setPointerCapture(e.pointerId);
 });
 document.addEventListener('pointermove', e => {
   // clip drags move the clip; note resizing happens in the piano roll
   if (!drag) return;
+  if (drag.mode === 'trimL' || drag.mode === 'trimR') {
+    const dx = (e.clientX - drag.x0) / px, c = drag.c;
+    if (drag.mode === 'trimL') {
+      const d = Math.max(-Math.min(drag.off0, drag.s0), Math.min(drag.dur0 - 0.05, dx));
+      c.start = drag.s0 + d; c.off = drag.off0 + d; c.dur = drag.dur0 - d;
+    } else {
+      c.dur = Math.max(0.05, Math.min(c.buf.duration - drag.off0, drag.dur0 + dx));
+    }
+    drag.el.style.left = (c.start * px) + 'px';
+    drag.el.style.width = Math.max(4, c.dur * px) + 'px';
+    drag.moved = true;
+    return;
+  }
   const dx = (e.clientX - drag.x0) / px;
   if (!drag.moved && Math.abs(dx * px) < 4) return;
   drag.moved = true;
@@ -1529,6 +1551,11 @@ document.addEventListener('pointerup', e => {
   if (!drag) return;
   const d = drag; drag = null;
   // (clip drag end)
+  if (d.mode === 'trimL' || d.mode === 'trimR') {
+    justDragged = true; setTimeout(() => { justDragged = false; }, 0);
+    render(); if (playing) play(pos);
+    return;
+  }
   if (!d.moved) return;
   justDragged = true; setTimeout(() => { justDragged = false; }, 0);
   const under = document.elementFromPoint(e.clientX, e.clientY);
@@ -2260,11 +2287,11 @@ function splitAtPlayhead() {
     left = { ...c, id: uid(), steps: cs, dur: cs * sd(), notes: c.notes.filter(n => n.s < cs).map(n => ({ ...n, len: Math.min(n.len, cs - n.s) })) };
     right = { ...c, id: uid(), start: c.start + cs * sd(), steps: c.steps - cs, dur: (c.steps - cs) * sd(), notes: c.notes.filter(n => n.s >= cs).map(n => ({ ...n, s: n.s - cs })) };
   } else {
-    const idx = Math.round(cut * c.buf.sampleRate), len = c.buf.length;
-    if (idx <= 0 || idx >= len) { kitMsg('Move the playhead further inside the take to split it'); return; }
-    const lb = sliceBuf(c.buf, 0, idx), rb = sliceBuf(c.buf, idx, len);
-    left = { ...c, id: uid(), buf: lb, dur: lb.duration, wave: waveOf(lb) };
-    right = { ...c, id: uid(), start: c.start + cut, buf: rb, dur: rb.duration, wave: waveOf(rb) };
+    const sr = c.buf.sampleRate, o = Math.round((c.off || 0) * sr), idx = o + Math.round(cut * sr), end = o + Math.round(c.dur * sr);
+    if (cut <= 0.01 || cut >= c.dur - 0.01) { kitMsg('Move the playhead further inside the take to split it'); return; }
+    const lb = sliceBuf(c.buf, o, idx), rb = sliceBuf(c.buf, idx, Math.min(end, c.buf.length));
+    left = { ...c, id: uid(), off: 0, buf: lb, dur: cut, wave: waveOf(lb) };
+    right = { ...c, id: uid(), off: 0, start: c.start + cut, buf: rb, dur: c.dur - cut, wave: waveOf(rb) };
   }
   owner.clips = owner.clips.filter(x => x !== c).concat([left, right]);
   selClip = left.id; render();
@@ -2361,6 +2388,12 @@ $('clipPitch').addEventListener('change', e => {
   c.pitch = Math.max(-24, Math.min(24, Math.round(+e.target.value) || 0));
   kitMsg(c.name + ' pitch set to ' + c.pitch + ' semitones');
 });
+// ---------- Trimming ----------
+function trimView(c) {
+  if (!c.wave || !c.wave.mn) return c;
+  const i0 = Math.floor((c.off || 0) * BPS), n = Math.max(1, Math.min(c.wave.mn.length - i0, Math.round(c.dur * BPS)));
+  return { ...c, wave: { mn: c.wave.mn.slice(i0, i0 + n), mx: c.wave.mx.slice(i0, i0 + n) } };
+}
 </script>
 </body>
 </html>
