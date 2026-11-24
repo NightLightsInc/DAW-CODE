@@ -142,6 +142,11 @@ main{grid-row:3 !important}
 .musicItem audio{width:100%}
 .clipdup{position:absolute;top:2px;right:34px;z-index:2;padding:0 6px;font-size:11px;line-height:16px;background:rgba(0,0,0,.6)}
 #themePick{font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.latWrap{position:relative;display:inline-block}
+.latPop{position:absolute;top:calc(100% + 8px);right:0;z-index:40;width:280px;display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:var(--r);background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow)}
+.latPop[hidden]{display:none}
+.latRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+.latRow input{width:70px;font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -189,8 +194,15 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
     <button id="play" aria-pressed="false">Play</button>
     <button id="stop">Stop</button>
     <button id="metro" aria-pressed="false">Metronome</button>
-    <button id="latency">Latency test</button>
-    <button id="fixLatency">Fix latency</button>
+    <span class="latWrap">
+      <button id="latencyBtn" aria-expanded="false">Latency</button>
+      <div id="latPop" class="latPop" hidden>
+        <strong>Latency compensation</strong>
+        <label class="latRow">Shift new takes earlier by <input id="latMs" type="number" min="0" max="500" step="1"> ms</label>
+        <div class="latRow"><button id="latAuto">Auto-detect</button><button id="latReset">Reset</button></div>
+        <p id="latStatus" class="fxempty"></p>
+      </div>
+    </span>
     <button id="rec" aria-pressed="false">Record</button>
     <output id="clock">0:00.0</output>
     <label class="ctl">Tempo <input id="bpm" type="range" min="60" max="180" value="96"><output id="bpmOut">96</output></label>
@@ -1767,7 +1779,7 @@ async function latencyTest() {
   latencySec = Math.max(0, median);
   kitMsg(`Round trip ${Math.round(latencySec * 1000)} ms from ${found.length} clicks. Recordings will be shifted to match`);
 }
-$('latency').addEventListener('click', latencyTest);
+
 
 function nameFor(ext) { return `nightlights-mix-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.${ext}`; }
 function encodeWavStereo(buf) {
@@ -2180,7 +2192,29 @@ async function fixLatency() {
   try { localStorage.setItem('nl-latency', String(latencySec)); } catch (e) {}
   kitMsg(`Latency fixed. New takes shift ${Math.round(latencySec * 1000)} ms earlier, and this is remembered for next time`);
 }
-$('fixLatency').addEventListener('click', fixLatency);
+(function latencyPanel() {
+  const pop = $('latPop'), btn = $('latencyBtn'), inp = $('latMs'), st = $('latStatus');
+  function show() {
+    const ms = Math.round(latComp() * 1000);
+    inp.value = ms;
+    st.textContent = latencySec === null
+      ? (ms ? `Using the device's reported output delay: ${ms} ms. Run Auto-detect for an exact value` : 'Not measured yet. Run Auto-detect')
+      : `Shifting new takes by ${ms} ms, measured on this device`;
+  }
+  btn.addEventListener('click', () => { pop.hidden = !pop.hidden; btn.setAttribute('aria-expanded', String(!pop.hidden)); if (!pop.hidden) show(); });
+  document.addEventListener('click', e => { if (!e.target.closest('.latWrap')) { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
+  inp.addEventListener('change', () => {
+    latencySec = Math.max(0, Math.min(500, +inp.value || 0)) / 1000;
+    try { localStorage.setItem('nl-latency', String(latencySec)); } catch (e) {}
+    show();
+  });
+  $('latAuto').addEventListener('click', async () => { st.textContent = 'Detecting. Keep the room quiet...'; await fixLatency(); show(); });
+  $('latReset').addEventListener('click', () => {
+    latencySec = null;
+    try { localStorage.removeItem('nl-latency'); } catch (e) {}
+    show();
+  });
+})();
 </script>
 </body>
 </html>
