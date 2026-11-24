@@ -138,6 +138,8 @@ main{grid-row:3 !important}
 .presetEd{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:var(--r);background:var(--well)}
 #presetName{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
 .presetRow button{padding:5px 9px;font-size:12px}
+.musicItem{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);border-radius:var(--r);background:var(--well)}
+.musicItem audio{width:100%}
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -214,6 +216,10 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
   <details class="folder" open id="fPresets">
     <summary>Presets</summary>
     <div id="presetBox" class="fitems"></div>
+  </details>
+  <details class="folder" id="fMusic">
+    <summary>Shared music</summary>
+    <div id="musicBox" class="fitems"></div>
   </details>
   <div id="sideGrip" class="sidegrip" title="Drag to resize"></div>
 </aside>
@@ -1759,6 +1765,7 @@ function encodeMp3(buf) {
   return new Blob(out, { type: 'audio/mpeg' });
 }
 async function finishExport(blob, fmt) {
+  if (shareNext) { shareNext = false; return shareBlob(blob, shareTitle, blob.type.includes('mp4') ? 'video/mp4' : 'video/webm'); }
   try {
     if (fmt === 'mp4' && blob.type.includes('mp4')) return saveFile(blob, nameFor('mp4'));
     if (fmt === 'mp4') kitMsg('This browser cannot record MP4, so the mix was saved as WebM');
@@ -2003,6 +2010,72 @@ function latComp() {
   if (latencySec !== null) return latencySec;
   return ctx ? (ctx.outputLatency || ctx.baseLatency || 0) : 0;
 }
+// ---------- Shared music folder ----------
+let musicDb = null, shareNext = false, shareTitle = '';
+function safeSrc(u) { return typeof u === 'string' && (u.startsWith('/_blob/') || u.startsWith('https://')) ? u : ''; }
+async function shareBlob(blob, title, type) {
+  const assets = window.claude && window.claude.use ? await window.claude.use('assets') : null;
+  if (!assets || !musicDb) { kitMsg('Only Contributors can share music. Sign in to share'); return; }
+  kitMsg('Sharing...');
+  try {
+    const r = await assets.upload(blob, { type });
+    await musicDb.collection('music').add({ title: (title || 'Untitled mix').trim().slice(0, 60), url: r.url, assetId: r.id, sizeBytes: r.sizeBytes, createdAt: Date.now() });
+    kitMsg('Shared to the music folder');
+  } catch (err) { kitMsg('Could not share: ' + (err.code || err.message || 'error')); }
+}
+function renderMusic(list) {
+  const box = $('musicBox'); box.innerHTML = '';
+  const form = document.createElement('div'); form.className = 'presetRow';
+  const tIn = document.createElement('input');
+  tIn.type = 'text'; tIn.id = 'shareTitleIn'; tIn.maxLength = 60; tIn.placeholder = 'Title for your mix';
+  tIn.value = shareTitle; tIn.setAttribute('aria-label', 'Title for your mix');
+  const fIn = document.createElement('input'); fIn.type = 'file'; fIn.id = 'musicFile'; fIn.hidden = true;
+  fIn.accept = 'audio/webm,audio/mp4,video/webm,video/mp4';
+  form.append(tIn, mkBtn('Record mix and share', 'shareMix', false), mkBtn('Upload a file', 'shareUpload', false), fIn);
+  box.append(form);
+  const note = document.createElement('p'); note.className = 'fxempty';
+  note.textContent = 'Shared music is visible to everyone who opens this page. Mixes are shared as WebM or MP4.';
+  box.append(note);
+  if (!list.length) { const p = document.createElement('p'); p.className = 'fxempty'; p.textContent = 'No shared music yet.'; box.append(p); }
+  list.forEach(m => {
+    const card = document.createElement('div'); card.className = 'musicItem';
+    const t = document.createElement('strong'); t.textContent = m.title;
+    const a = document.createElement('audio'); a.controls = true; a.preload = 'none';
+    const src = safeSrc(m.url); if (src) a.src = src;
+    const rm = mkBtn('Remove', 'musicRemove', false); rm.dataset.id = m.id;
+    card.append(t, a, rm); box.append(card);
+  });
+}
+$('musicBox').addEventListener('input', e => { if (e.target.id === 'shareTitleIn') shareTitle = e.target.value; });
+$('musicBox').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.act === 'shareMix') {
+    if (mixRec) { kitMsg('Stop the current export first'); return; }
+    shareTitle = $('shareTitleIn').value; shareNext = true;
+    exportMix('webm');
+    kitMsg('Recording the mix. Press Stop to share it to the music folder');
+  }
+  if (b.dataset.act === 'shareUpload') $('musicFile').click();
+  if (b.dataset.act === 'musicRemove' && musicDb) {
+    try { await musicDb.collection('music').doc(b.dataset.id).delete(); kitMsg('Removed from the music folder'); }
+    catch (err) { kitMsg('Only Contributors can remove music'); }
+  }
+});
+$('musicBox').addEventListener('change', e => {
+  if (e.target.id !== 'musicFile') return;
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const title = (shareTitle || f.name.replace(/\.[^.]+$/, '')).trim();
+  shareBlob(f, title, f.type.includes('mp4') ? 'video/mp4' : 'video/webm');
+});
+(async () => {
+  const db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+  if (!db) { renderMusic([]); return; }
+  musicDb = db;
+  db.collection('music').orderBy('createdAt', 'desc').onSnapshot(snap => {
+    renderMusic(snap.docs.map(d => ({ id: d.id, ...(d.data() || {}) })).filter(m => typeof m.title === 'string'));
+  }, () => renderMusic([]));
+})();
+renderMusic([]);
 </script>
 </body>
 </html>
