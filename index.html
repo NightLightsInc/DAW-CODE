@@ -1669,7 +1669,21 @@ function metroClick(t, bar) {
   g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
   o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.06);
 }
-$('metro').addEventListener('click', () => { metroOn = !metroOn; $('metro').setAttribute('aria-pressed', metroOn); });
+let metroNext = 0, metroCount = 0, metroTimer = null;
+function metroTick() {
+  if (!metroOn) return;
+  while (metroNext < ctx.currentTime + 0.1) {
+    if (!playing) metroClick(metroNext, metroCount % 4 === 0);
+    metroNext += 60 / bpm; metroCount++;
+  }
+  metroTimer = setTimeout(metroTick, 25);
+}
+$('metro').addEventListener('click', () => {
+  metroOn = !metroOn;
+  $('metro').setAttribute('aria-pressed', metroOn);
+  clearTimeout(metroTimer);
+  if (metroOn) { init(); metroNext = ctx.currentTime + 0.05; metroCount = 0; metroTick(); }
+});
 
 async function latencyTest() {
   init();
@@ -1677,7 +1691,9 @@ async function latencyTest() {
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
   catch (err) { kitMsg('Allow microphone access to run the latency test'); return; }
   const an = ctx.createAnalyser(); an.fftSize = 2048;
-  ctx.createMediaStreamSource(stream).connect(an);
+  const micSrc = ctx.createMediaStreamSource(stream), silent = ctx.createGain();
+  silent.gain.value = 0;
+  micSrc.connect(an); an.connect(silent); silent.connect(ctx.destination);
   const buf = new Float32Array(an.fftSize), t0 = ctx.currentTime + 0.3;
   const o = ctx.createOscillator(), g = ctx.createGain();
   o.frequency.value = 1000;
@@ -1690,7 +1706,7 @@ async function latencyTest() {
     if (ctx.currentTime < t0) continue;
     an.getFloatTimeDomainData(buf);
     let pk = 0; for (let i = 0; i < buf.length; i++) pk = Math.max(pk, Math.abs(buf[i]));
-    if (pk > 0.05) heard = ctx.currentTime;
+    if (pk > 0.03) heard = ctx.currentTime;
   }
   stream.getTracks().forEach(t => t.stop());
   if (heard !== null) latencySec = heard - t0;
