@@ -1203,6 +1203,7 @@ const FX_DEFS = {
   exciter: { name: 'Exciter', p: { freq: 4000, drive: .3, mix: .3 }, r: { freq: [2000, 10000, 50], drive: [0, 1, .01], mix: [0, 1, .01] } },
   echo: { name: 'Echo', p: { time: .35, fb: .4, mix: .3 }, r: { time: [.05, 1.5, .01], fb: [0, .9, .01], mix: [0, 1, .01] } },
   reverb: { name: 'Reverb', p: { decay: 2, mix: .25 }, r: { decay: [.2, 6, .1], mix: [0, 1, .01] } },
+  pingpong: { name: 'Ping-pong delay', p: { time: .3, fb: .35, mix: .3 }, r: { time: [.05, 1.2, .01], fb: [0, .9, .01], mix: [0, 1, .01] } },
   dist: { name: 'Distortion', p: { drive: .4, tone: 4000, mix: .5 }, r: { drive: [0, 1, .01], tone: [800, 12000, 50], mix: [0, 1, .01] } }
 };
 const FX_LABELS = { tone: 'Tone (Hz)', low: 'Low (dB)', mid: 'Mid (dB)', midF: 'Mid freq (Hz)', midQ: 'Mid Q', high: 'High (dB)', thr: 'Threshold', ratio: 'Ratio', att: 'Attack (s)', rel: 'Release (s)', freq: 'Frequency (Hz)', drive: 'Drive', mix: 'Mix', time: 'Delay time (s)', fb: 'Feedback', decay: 'Decay (s)' };
@@ -1234,6 +1235,7 @@ function applyFx(fx, p) {
     case 'deess': n.hp.frequency.value = p.freq; n.comp.threshold.value = p.thr; n.comp.ratio.value = p.ratio; break;
     case 'exciter': n.hp.frequency.value = p.freq; if (n.drive !== p.drive) { n.drive = p.drive; n.ws.curve = excCurve(p.drive); } n.mix.gain.value = p.mix; break;
     case 'echo': n.dl.delayTime.value = p.time; n.fb.gain.value = p.fb; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix * 0.5; break;
+    case 'pingpong': n.d1.delayTime.value = p.time; n.d2.delayTime.value = p.time; n.fb.gain.value = p.fb; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix * 0.5; break;
     case 'dist': if (n.drive !== p.drive) { n.drive = p.drive; n.ws.curve = distCurve(p.drive); } n.tone.frequency.value = p.tone; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix; break;
     case 'reverb': if (n.decay !== p.decay) { n.decay = p.decay; n.cv.buffer = impulse(p.decay); } n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix * 0.5; break;
   }
@@ -1266,6 +1268,14 @@ function mkFx(type, p) {
     n.ws = ctx.createWaveShaper(); n.tone = filt('lowpass', 4000); n.wet = gain(0); n.dry = gain(1);
     inN.connect(n.ws); n.ws.connect(n.tone); n.tone.connect(n.wet); n.wet.connect(out);
     inN.connect(n.dry); n.dry.connect(out);
+  }
+  if (type === 'pingpong') {
+    n.d1 = ctx.createDelay(2); n.d2 = ctx.createDelay(2); n.fb = gain(0); n.wet = gain(0); n.dry = gain(1);
+    n.mg = ctx.createChannelMerger(2);
+    inN.connect(n.dry); n.dry.connect(out);
+    inN.connect(n.d1); n.d1.connect(n.mg, 0, 0); n.d1.connect(n.d2);
+    n.d2.connect(n.mg, 0, 1); n.d2.connect(n.fb); n.fb.connect(n.d1);
+    n.mg.connect(n.wet); n.wet.connect(out);
   }
   const fx = { type, in: inN, out, n };
   fx.set = q => applyFx(fx, q);
@@ -1616,6 +1626,10 @@ $('presetJson').addEventListener('change', async e => {
   if (!f) return;
   try {
     const d = JSON.parse(await f.text());
+    if (d.format === 'nightlights-fx-preset' && Array.isArray(d.fx)) {
+      filePresets.push({ id: 'p' + Date.now().toString(36) + filePresets.length, name: String(d.name).slice(0, 40), fx: cleanFx(d.fx) });
+      renderPresets(); kitMsg('Preset file added to the Presets folder'); return;
+    }
     if (!d.name || !d.patch) throw new Error('bad preset');
     PRESETS[String(d.name).slice(0, 30)] = { ...PRESETS['Pluck'], ...d.patch };
     renderInstSel(); renderSynth();
@@ -1818,7 +1832,8 @@ const FX_PRESETS = {
   'NightLights Vocal Preset': ['reverb', 'comp', 'eq'],
   'NightLights Echo Preset': ['reverb', 'comp', 'echo', 'eq']
 };
-let sharedPresets = [], presetsDb = null;
+let sharedPresets = [], presetsDb = null, filePresets = [];
+function presetByKey(v) { return (v.startsWith('f:') ? filePresets : sharedPresets).find(x => x.id === v.slice(2)); }
 function cleanFx(list) {
   return (Array.isArray(list) ? list : []).filter(f => f && FX_DEFS[f.type]).map(f => {
     const p = { ...FX_DEFS[f.type].p };
@@ -1859,6 +1874,7 @@ function renderDraft() {
   if (!d.fx.length) { const p = document.createElement('p'); p.className = 'fxempty'; p.textContent = 'No effects yet. Add one above.'; wrap.append(p); }
   const acts = document.createElement('div'); acts.className = 'presetRow';
   acts.append(mkBtn('Save as my preset', 'pSave', false));
+  acts.append(mkBtn('Download preset file', 'pDownload', false));
   if (d.id) acts.append(mkBtn('Delete shared preset', 'pRemove', false));
   acts.append(mkBtn('Close editor', 'pClose', false));
   wrap.append(acts);
@@ -1871,6 +1887,7 @@ function renderPresets() {
   pick.append(new Option('Choose a preset...', ''));
   Object.keys(FX_PRESETS).forEach(n => pick.append(new Option(n, 'b:' + n)));
   sharedPresets.forEach(p => pick.append(new Option('Shared: ' + p.name, 's:' + p.id)));
+  filePresets.forEach(p => pick.append(new Option('File: ' + p.name, 'f:' + p.id)));
   if (presetDraft && presetDraft.key) pick.value = presetDraft.key;
   row.append(pick, mkBtn('Edit selected', 'presetEdit', false), mkBtn('New preset', 'presetNew', false), mkBtn('Apply to FX track', 'presetApply', false));
   box.append(row);
@@ -1905,7 +1922,7 @@ $('presetBox').addEventListener('click', async e => {
     const v = $('presetPick').value;
     if (!v) { kitMsg('Choose a preset to edit'); return; }
     if (v.startsWith('b:')) { const n = v.slice(2); presetDraft = { key: v, id: null, name: n, fx: cleanFx(FX_PRESETS[n].map(t => ({ type: t }))) }; }
-    else { const p = sharedPresets.find(x => x.id === v.slice(2)); if (p) presetDraft = { key: v, id: p.id, name: p.name, fx: cleanFx(p.fx) }; }
+    else { const p = presetByKey(v); if (p) presetDraft = { key: v, id: p.id, name: p.name, fx: cleanFx(p.fx) }; }
     renderPresets(); return;
   }
   if (act === 'presetNew') { presetDraft = { key: null, id: null, name: 'My preset', fx: [] }; renderPresets(); return; }
@@ -1916,7 +1933,7 @@ $('presetBox').addEventListener('click', async e => {
       const v = $('presetPick').value;
       if (!v) { kitMsg('Choose a preset first'); return; }
       if (v.startsWith('b:')) tr.fx = cleanFx(FX_PRESETS[v.slice(2)].map(t => ({ type: t })));
-      else { const p = sharedPresets.find(x => x.id === v.slice(2)); if (p) tr.fx = cleanFx(p.fx); }
+      else { const p = presetByKey(v); if (p) tr.fx = cleanFx(p.fx); }
     }
     renderFx(); kitMsg(tr.name + ' now uses the preset. It takes effect the next time you press Play'); return;
   }
@@ -1927,6 +1944,7 @@ $('presetBox').addEventListener('click', async e => {
   if (act === 'pUp' && i > 0) [d.fx[i - 1], d.fx[i]] = [d.fx[i], d.fx[i - 1]];
   if (act === 'pDown' && i < d.fx.length - 1) [d.fx[i], d.fx[i + 1]] = [d.fx[i + 1], d.fx[i]];
   if (act === 'pClose') { presetDraft = null; }
+  if (act === 'pDownload') { saveFile(new Blob([JSON.stringify({ format: 'nightlights-fx-preset', version: 1, name: (d.name || 'My preset').trim(), fx: cleanFx(d.fx) })], { type: 'application/json' }), ((d.name || 'my-preset').trim().replace(/[^\w-]+/g, '_') || 'my-preset') + '.nlpreset.json'); return; }
   if (act === 'pSave') {
     if (!presetsDb) { kitMsg('Sign in to save shared presets'); return; }
     const name = (d.name || '').trim() || 'My preset', fx = cleanFx(d.fx);
@@ -1935,8 +1953,9 @@ $('presetBox').addEventListener('click', async e => {
       if (d.id) await presetsDb.collection('presets').doc(d.id).update({ name, fx });
       else { const ref = await presetsDb.collection('presets').add({ name, fx }); d.id = ref.id; }
       d.name = name; d.key = 's:' + d.id;
-      kitMsg('Preset saved for everyone');
-    } catch (err) { kitMsg('Could not save. Only Contributors can save shared presets'); }
+      sharedPresets = [{ id: d.id, name, fx }, ...sharedPresets.filter(p => p.id !== d.id)];
+      kitMsg('Preset saved to the library for everyone');
+    } catch (err) { kitMsg('Could not save the preset' + (err && err.code ? ' (' + err.code + ')' : '')); }
   }
   if (act === 'pRemove' && d.id) {
     try { await presetsDb.collection('presets').doc(d.id).delete(); presetDraft = null; kitMsg('Shared preset deleted'); }
