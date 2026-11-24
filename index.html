@@ -157,6 +157,18 @@ main{grid-row:3 !important}
 .atpanel{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;padding:4px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--well)}
 html,body{height:100%}
 @supports (height:100dvh){ body{height:100dvh} }
+.lane.multi .hdr{box-shadow:inset 4px 0 0 var(--cyan)}
+.mixtools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.presetCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:10px}
+.presetCard{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:12px;border-radius:var(--r);background:var(--well);border:1px solid var(--line)}
+.presetCard strong{color:var(--text)}
+.presetCard span{color:var(--dim);font-size:11px;line-height:1.35}
+.leavemodal{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding:16px}
+.leavemodal[hidden]{display:none}
+.leavecard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;max-width:380px;width:100%;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
+.leavecard h2{margin:0;font-size:18px}
+.leavecard p{margin:0;color:var(--dim)}
+.leaverow{display:flex;gap:8px;flex-wrap:wrap}
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -240,6 +252,7 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
   </details>
   <details class="folder" open>
     <summary>Mixing</summary>
+    <div id="mixTools" class="mixtools"></div>
     <div id="mixer" class="mixer"></div>
     <div id="fxBox" class="fxBox"></div>
   </details>
@@ -278,6 +291,8 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
       <option value="stomp">Stomp</option><option value="starwars">Star Wars laser</option><option value="oof">Oof</option>
     </select></label>
     <button id="sfxAdd">Add sound effect</button>
+    <button id="selAll">Select all tracks</button>
+    <span id="selCount" class="ctl"></span>
     <button id="delSel">Delete</button>
     <button id="delTrack">Delete track</button>
     <label class="ctl"><input id="ripple" type="checkbox"> Ripple</label>
@@ -506,7 +521,7 @@ function render() {
   const lanes = $('lanes'); lanes.innerHTML = '';
   tracks.forEach((tr, i) => {
     const row = document.createElement('div');
-    row.className = 'row lane' + (i === sel || trackSet.has(i) ? ' sel' : ''); row.dataset.i = i;
+    row.className = 'row lane' + (i === sel || trackSet.has(i) ? ' sel' : '') + (trackSet.has(i) ? ' multi' : ''); row.dataset.i = i;
     const h = document.createElement('div'); h.className = 'hdr';
     const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = tr.name;
     const btns = document.createElement('div'); btns.className = 'hbtns';
@@ -536,6 +551,7 @@ function render() {
   placePlayhead();
   renderRoll();
   renderMixer();
+  $('selCount').textContent = trackSet.size > 1 ? trackSet.size + ' tracks selected' : '';
 }
 function placePlayhead() { $('ph').style.left = (HDR + pos * px) + 'px'; }
 function updateClock() {
@@ -2070,7 +2086,15 @@ document.querySelectorAll('input[type=range]').forEach(addNumBox);
 // ---------- Presets (built-in and shared) ----------
 const FX_PRESETS = {
   'NightLights Vocal Preset': ['reverb', 'comp', 'eq'],
-  'NightLights Echo Preset': ['reverb', 'comp', 'echo', 'eq']
+  'NightLights Echo Preset': ['reverb', 'comp', 'echo', 'eq'],
+  'NightLights Radio Voice': ['eq', 'comp', 'softclip'],
+  'NightLights Telephone': ['eq', 'bitcrush', 'gain'],
+  'NightLights Robot Voice': ['flanger', 'bitcrush', 'comp'],
+  'NightLights Podcast Voice': ['comp', 'eq', 'limiter'],
+  'NightLights Big Room Vocal': ['vocal', 'chorus', 'reverb', 'limiter'],
+  'NightLights Lo-fi Vocal': ['sat', 'eq', 'bitcrush', 'vibrato'],
+  'NightLights Chorus Vocal': ['chorus', 'reverb'],
+  'NightLights Phaser Lead': ['phaser', 'sat', 'pingpong']
 };
 let sharedPresets = [], presetsDb = null, filePresets = [];
 function presetByKey(v) { return (v.startsWith('f:') ? filePresets : sharedPresets).find(x => x.id === v.slice(2)); }
@@ -2134,6 +2158,14 @@ function renderPresets() {
   if (presetDraft) box.append(renderDraft());
   const note = document.createElement('p'); note.className = 'fxempty';
   note.textContent = presetsDb ? 'Shared presets are visible to everyone who opens this page.' : 'Sign in to load and save shared presets.';
+  const grid = document.createElement('div'); grid.className = 'presetCards';
+  Object.entries(FX_PRESETS).forEach(([n, types]) => {
+    const c = mkBtn('', 'cardApply', false); c.className = 'presetCard'; c.dataset.name = n;
+    const t = document.createElement('strong'); t.textContent = n.replace('NightLights ', '');
+    const d = document.createElement('span'); d.textContent = types.map(x => FX_DEFS[x].name).join(' > ');
+    c.textContent = ''; c.append(t, d); grid.append(c);
+  });
+  box.append(grid);
   box.append(note);
 }
 function renderPresetsInit() {
@@ -2165,6 +2197,7 @@ $('presetBox').addEventListener('click', async e => {
     else { const p = presetByKey(v); if (p) presetDraft = { key: v, id: p.id, name: p.name, fx: cleanFx(p.fx) }; }
     renderPresets(); return;
   }
+  if (act === 'cardApply') { const types = FX_PRESETS[b.dataset.name]; if (types) { tr.fx = cleanFx(types.map(t => ({ type: t }))); renderFx(); kitMsg(tr.name + ' now uses ' + b.dataset.name); } return; }
   if (act === 'presetNew') { presetDraft = { key: null, id: null, name: 'My preset', fx: [] }; renderPresets(); return; }
   if (act === 'presetApply') {
     const fx = presetDraft ? presetDraft.fx : null;
@@ -2934,6 +2967,58 @@ $('rollBox').append($('rollSec'));
   document.addEventListener('fullscreenchange', sync);
   document.addEventListener('webkitfullscreenchange', sync);
   sync();
+})();
+// ---------- Mix tools ----------
+(function mixTools() {
+  const box = $('mixTools');
+  [['Reset faders', 'resetVol'], ['Center all pans', 'centerPan'], ['Mute all', 'muteAll'], ['Unmute all', 'unmuteAll'], ['Clear solo', 'clearSolo']]
+    .forEach(([label, act]) => box.append(mkBtn(label, act, false)));
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const a = b.dataset.act;
+    tracks.forEach(t => {
+      if (a === 'resetVol') t.vol = 0.8;
+      if (a === 'centerPan') t.pan = 0;
+      if (a === 'muteAll') t.mute = true;
+      if (a === 'unmuteAll') t.mute = false;
+      if (a === 'clearSolo') t.solo = false;
+      if (t.bus) t.bus.pan.pan.value = t.pan || 0;
+    });
+    render();
+  });
+})();
+
+// ---------- Leaving full screen ----------
+(function leaveGuard() {
+  const modal = document.createElement('div');
+  modal.id = 'leaveModal'; modal.className = 'leavemodal'; modal.hidden = true;
+  modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true');
+  const card = document.createElement('div'); card.className = 'leavecard';
+  const h = document.createElement('h2'); h.textContent = 'Leaving full screen';
+  const p = document.createElement('p'); p.textContent = 'You are leaving this site. Your changes may not be saved.';
+  const row = document.createElement('div'); row.className = 'leaverow';
+  row.append(mkBtn('Save project first', 'leaveSave', false), mkBtn('Continue', 'leaveContinue', false), mkBtn('Leave', 'leaveLeave', false));
+  card.append(h, p, row); modal.append(card); document.body.append(modal);
+  const inFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+  let wasFs = false;
+  const check = () => {
+    if (inFs()) { wasFs = true; return; }
+    if (wasFs) { wasFs = false; modal.hidden = false; $('leaveModal').querySelector('[data-act="leaveContinue"]').focus(); }
+  };
+  document.addEventListener('fullscreenchange', check);
+  document.addEventListener('webkitfullscreenchange', check);
+  modal.addEventListener('click', async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const a = b.dataset.act;
+    if (a === 'leaveSave') { await saveProjectZip(); return; }
+    if (a === 'leaveContinue') { modal.hidden = true; return; }
+    if (a === 'leaveLeave') {
+      modal.hidden = true;
+      // Go back to where the visitor came from, or to Claude if there is nowhere to return to
+      location.href = document.referrer || 'https://claude.ai/';
+    }
+  });
+  modal.addEventListener('keydown', e => { if (e.key === 'Escape') modal.hidden = true; });
 })();
 </script>
 </body>
