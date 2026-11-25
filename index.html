@@ -235,6 +235,36 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border:none;border-ra
 .bpmdetect{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.25)),var(--well);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);letter-spacing:.5px}
 #clock{letter-spacing:1px}
 footer{display:none}
+.knob{position:relative;width:30px;height:30px;border-radius:50%;flex:none;cursor:ns-resize;touch-action:none;user-select:none;outline:none;background:radial-gradient(circle at 35% 30%,#5b5b66,#1b1b22 70%);box-shadow:0 3px 8px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.18),inset 0 -2px 4px rgba(0,0,0,.4)}
+.knob::before{content:'';position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(from -135deg,var(--lamp) 0deg,var(--lamp) var(--arc,0deg),rgba(255,255,255,.08) var(--arc,0deg),rgba(255,255,255,.08) 270deg,transparent 270deg);-webkit-mask:radial-gradient(circle,transparent 15px,#000 16px,#000 18px,transparent 19px);mask:radial-gradient(circle,transparent 15px,#000 16px,#000 18px,transparent 19px);pointer-events:none}
+.knob:focus-visible{box-shadow:0 0 0 2px var(--cyan),0 3px 8px rgba(0,0,0,.6)}
+.knob-rot{position:absolute;inset:0;border-radius:50%}
+.knob-rot::after{content:'';position:absolute;left:50%;top:3px;width:3px;height:9px;margin-left:-1.5px;border-radius:2px;background:#fff;box-shadow:0 0 6px var(--lamp)}
+.knob:hover{filter:brightness(1.12)}
+.micbar{display:flex;align-items:center;gap:8px;margin-right:auto;padding:4px 10px;border-radius:999px;background:var(--well);border:1px solid var(--line)}
+.micbar .meter{width:140px;height:8px;border-radius:6px;background:#0a0712;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}
+.micbar .fill{height:100%;width:0%;background:var(--cyan);border-radius:6px;transition:width .05s linear}
+.micbar input[type=range]{width:80px}
+/* ===== Glow: buttons and dials =====*/
+button,.btn,.fbtn,.ctog{box-shadow:0 0 8px color-mix(in srgb,var(--lamp) 30%,transparent),0 0 2px color-mix(in srgb,var(--cyan) 40%,transparent),inset 0 1px 0 rgba(255,255,255,.08)!important;transition:box-shadow .2s,border-color .2s,background .2s,transform .05s}
+button:hover,.btn:hover,.fbtn:hover,.ctog:hover{box-shadow:0 0 14px color-mix(in srgb,var(--lamp) 60%,transparent),0 0 4px color-mix(in srgb,var(--cyan) 60%,transparent),inset 0 1px 0 rgba(255,255,255,.12)!important}
+button[aria-pressed="true"],.fbtn[aria-pressed="true"]{box-shadow:0 0 16px color-mix(in srgb,var(--lamp) 70%,transparent),inset 0 0 8px color-mix(in srgb,var(--lamp) 25%,transparent)!important}
+#play,#rec,#pause,#stop{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--lamp) 50%,transparent))}
+input[type=range]{box-shadow:0 0 6px color-mix(in srgb,var(--lamp) 45%,transparent);filter:drop-shadow(0 0 3px color-mix(in srgb,var(--cyan) 35%,transparent))}
+input[type=range]::-webkit-slider-thumb{box-shadow:0 0 10px var(--cyan),0 0 4px var(--lamp),0 1px 4px rgba(0,0,0,.6)}
+input[type=range]::-moz-range-thumb{box-shadow:0 0 10px var(--cyan),0 0 4px var(--lamp),0 1px 4px rgba(0,0,0,.6)}
+input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 16px var(--cyan),0 0 8px var(--lamp),0 1px 4px rgba(0,0,0,.6)}
+.step.on{box-shadow:0 0 14px color-mix(in srgb,var(--lamp) 60%,transparent)!important}
+/* ===== Tiny stars in the background =====*/
+html{background-color:var(--ink);background-image:radial-gradient(1px 1px at 12px 40px,rgba(255,255,255,.75),transparent),radial-gradient(1px 1px at 88px 120px,rgba(255,255,255,.5),transparent),radial-gradient(1px 1px at 160px 60px,rgba(255,255,255,.65),transparent),radial-gradient(1px 1px at 230px 190px,rgba(255,255,255,.4),transparent),radial-gradient(1px 1px at 40px 200px,rgba(255,255,255,.55),transparent),radial-gradient(1px 1px at 200px 20px,rgba(255,255,255,.6),transparent);background-size:260px 240px;background-repeat:repeat;background-attachment:fixed}
+body{background:transparent!important}
+.arr{background:var(--well)!important;position:relative;z-index:2}
+.roll{position:relative;z-index:2}
+/* ===== Twinkling stars across the whole screen ===== */
+#starfield{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+#starfield i{position:absolute;display:block;border-radius:50%;background:#fff;box-shadow:0 0 3px rgba(255,255,255,.9);opacity:0;animation:twinkle var(--d,4s) ease-in-out var(--dl,0s) infinite}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.6)}50%{opacity:var(--o,.9);transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){#starfield i{animation:none;opacity:.6}}
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -1516,9 +1546,13 @@ const FX_DEFS = {
   feedback: { name: 'Feedback killer', p: { freq: 1000, q: 10, cut: -20 }, r: { freq: [100, 8000, 10], q: [1, 40, .5], cut: [-40, 0, .5] } },
   phaser: { name: 'Phaser', p: { rate: .5, sweep: 900, fb: .5, mix: .6 }, r: { rate: [.05, 8, .01], sweep: [100, 4000, 10], fb: [0, .95, .01], mix: [0, 1, .01] } },
   vibrato: { name: 'Vibrato', p: { rate: 5, depth: .003 }, r: { rate: [.5, 14, .1], depth: [0, .02, .0001] } },
-  gain: { name: 'Gain', p: { gain: 0 }, r: { gain: [-24, 24, .5] } }
+  gain: { name: 'Gain', p: { gain: 0 }, r: { gain: [-24, 24, .5] } },
+  filter: { name: 'Filter', p: { freq: 2000, q: 1 }, r: { freq: [40, 16000, 10], q: [.1, 20, .1] } },
+  tremolo: { name: 'Tremolo', p: { rate: 4, tdepth: .6 }, r: { rate: [.1, 20, .1], tdepth: [0, 1, .01] } },
+  autopan: { name: 'Auto-pan', p: { rate: .5, adepth: .8 }, r: { rate: [.05, 8, .01], adepth: [0, 1, .01] } },
+  ringmod: { name: 'Ring modulator', p: { freq: 300, mix: .5 }, r: { freq: [20, 2000, 1], mix: [0, 1, .01] } }
 };
-const FX_LABELS = { bits: 'Bit depth', presence: 'Presence (dB)', air: 'Air (dB)', sweep: 'Sweep (Hz)', cut: 'Cut (dB)', q: 'Q', gain: 'Gain (dB)', rate: 'Rate (Hz)', depth: 'Depth (s)', post: 'Post gain', tone: 'Tone (Hz)', low: 'Low (dB)', mid: 'Mid (dB)', midF: 'Mid freq (Hz)', midQ: 'Mid Q', high: 'High (dB)', thr: 'Threshold', ratio: 'Ratio', att: 'Attack (s)', rel: 'Release (s)', freq: 'Frequency (Hz)', drive: 'Drive', mix: 'Mix', time: 'Delay time (s)', fb: 'Feedback', decay: 'Decay (s)' };
+const FX_LABELS = { tdepth: 'Depth', adepth: 'Depth', bits: 'Bit depth', presence: 'Presence (dB)', air: 'Air (dB)', sweep: 'Sweep (Hz)', cut: 'Cut (dB)', q: 'Q', gain: 'Gain (dB)', rate: 'Rate (Hz)', depth: 'Depth (s)', post: 'Post gain', tone: 'Tone (Hz)', low: 'Low (dB)', mid: 'Mid (dB)', midF: 'Mid freq (Hz)', midQ: 'Mid Q', high: 'High (dB)', thr: 'Threshold', ratio: 'Ratio', att: 'Attack (s)', rel: 'Release (s)', freq: 'Frequency (Hz)', drive: 'Drive', mix: 'Mix', time: 'Delay time (s)', fb: 'Feedback', decay: 'Decay (s)' };
 function distCurve(d) { const n = 2048, c = new Float32Array(n), k = 1 + d * 60; for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * k) / Math.tanh(k); } return c; }
 function satCurve(d) { const n = 2048, c = new Float32Array(n), k = 1 + d * 5; for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * k) / Math.tanh(k); } return c; }
 function clipCurve(t) {
@@ -1566,6 +1600,10 @@ function applyFx(fx, p) {
     case 'phaser': n.lfo.frequency.value = p.rate; n.lg.gain.value = p.sweep; n.fb.gain.value = p.fb; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix * 0.5; break;
     case 'vibrato': n.lfo.frequency.value = p.rate; n.lg.gain.value = p.depth; break;
     case 'gain': n.g.gain.value = Math.pow(10, p.gain / 20); break;
+    case 'filter': n.f.frequency.value = p.freq; n.f.Q.value = p.q; break;
+    case 'tremolo': n.lfo.frequency.value = p.rate; n.lg.gain.value = p.tdepth * 0.5; n.g.gain.value = 1 - p.tdepth * 0.5; break;
+    case 'autopan': n.lfo.frequency.value = p.rate; n.lg.gain.value = p.adepth; break;
+    case 'ringmod': n.o.frequency.value = p.freq; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix; break;
     case 'sat': if (n.drive !== p.drive) { n.drive = p.drive; n.ws.curve = satCurve(p.drive); } n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix; break;
     case 'flanger': n.lfo.frequency.value = p.rate; n.lg.gain.value = p.depth; n.fb.gain.value = p.fb; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix * 0.5; break;
     case 'softclip': if (n.thr !== p.thr) { n.thr = p.thr; n.ws.curve = clipCurve(p.thr); } n.post.gain.value = p.post; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix; break;
@@ -1661,6 +1699,23 @@ function mkFx(type, p) {
     inN.connect(n.dl); n.dl.connect(out);
   }
   if (type === 'gain') { n.g = gain(1); inN.connect(n.g); n.g.connect(out); }
+  if (type === 'filter') { n.f = filt('lowpass', 2000); inN.connect(n.f); n.f.connect(out); }
+  if (type === 'tremolo') {
+    n.g = gain(1); n.lfo = ctx.createOscillator(); n.lg = gain(0.3);
+    n.lfo.connect(n.lg); n.lg.connect(n.g.gain); n.lfo.start();
+    inN.connect(n.g); n.g.connect(out);
+  }
+  if (type === 'autopan') {
+    n.pan = ctx.createStereoPanner(); n.lfo = ctx.createOscillator(); n.lg = gain(0);
+    n.lfo.connect(n.lg); n.lg.connect(n.pan.pan); n.lfo.start();
+    inN.connect(n.pan); n.pan.connect(out);
+  }
+  if (type === 'ringmod') {
+    n.o = ctx.createOscillator(); n.mul = gain(0); n.wet = gain(0.5); n.dry = gain(0.5);
+    n.o.connect(n.mul.gain); n.o.start();
+    inN.connect(n.mul); n.mul.connect(n.wet); n.wet.connect(out);
+    inN.connect(n.dry); n.dry.connect(out);
+  }
   const fx = { type, in: inN, out, n };
   fx.set = q => applyFx(fx, q);
   applyFx(fx, p);
@@ -2277,6 +2332,33 @@ const FX_PRESETS = {
   'NightLights Chorus Vocal': ['chorus', 'reverb'],
   'NightLights Phaser Lead': ['phaser', 'sat', 'pingpong']
 };
+// 53 chains across six families, each in two voicings, added to the list above
+const PRESET_FAMILIES = [
+  ['Vocal', [['eq','comp','reverb'],['eq','comp','echo'],['comp','eq','limiter'],['eq','deess','comp','reverb'],['vocal','comp','chorus','reverb'],['eq','sat','comp'],['eq','comp','pingpong','reverb'],['gate','comp','eq'],['eq','comp','softclip'],['comp','eq','exciter','reverb']]],
+  ['Guitar', [['eq','dist','eq'],['sat','chorus','reverb'],['dist','eq','phaser'],['eq','flanger','reverb'],['comp','sat','eq','echo'],['eq','tremolo'],['dist','echo','reverb'],['eq','vibrato','reverb'],['sat','eq','pingpong'],['eq','comp','chorus']]],
+  ['Drums', [['comp','sat','limiter'],['eq','comp','sat'],['bitcrush','limiter'],['eq','exciter','limiter'],['comp','eq','softclip'],['sat','bitcrush','eq'],['gate','comp','limiter'],['eq','ringmod'],['deess','eq','comp'],['comp','reverb','limiter']]],
+  ['Bass', [['eq','sat','limiter'],['eq','comp','dist'],['filter','sat'],['sat','comp','eq'],['eq','chorus'],['comp','filter','limiter'],['eq','ringmod','limiter'],['sat','eq','phaser']]],
+  ['Master', [['eq','comp','sat','limiter'],['eq','comp','exciter','limiter'],['comp','eq','softclip','limiter'],['eq','sat','comp','limiter'],['eq','comp','limiter'],['eq','vocal','limiter'],['eq','comp','limiter','gain']]],
+  ['Space & FX', [['reverb','pingpong','filter'],['chorus','reverb','autopan'],['flanger','reverb','echo'],['phaser','reverb'],['tremolo','reverb'],['autopan','echo','reverb'],['ringmod','reverb'],['filter','echo','reverb']]]
+];
+const PRESET_VOICINGS = {
+  Bright: { eq: { high: 6 }, vocal: { air: 6 }, exciter: { drive: .7 }, filter: { freq: 6000 }, dist: { tone: 9000 }, sat: { drive: .5 } },
+  Warm: { eq: { low: 5, high: -3 }, vocal: { presence: 2, air: -3 }, sat: { drive: .8 }, filter: { freq: 900 }, dist: { tone: 2500 }, exciter: { drive: .2 } }
+};
+PRESET_FAMILIES.forEach(([family, chains]) => {
+  chains.forEach((chain, i) => {
+    Object.keys(PRESET_VOICINGS).forEach(voicing => {
+      const o = PRESET_VOICINGS[voicing];
+      FX_PRESETS[`NightLights ${family} ${i + 1} - ${voicing}`] = chain.map(t => ({ type: t, p: o[t] || {} }));
+    });
+  });
+});
+// Turns a preset (names only, or names with settings) into a full effects chain
+function chainOf(entry) {
+  return entry.map(x => typeof x === 'string'
+    ? { type: x, p: { ...FX_DEFS[x].p } }
+    : { type: x.type, p: { ...FX_DEFS[x.type].p, ...(x.p || {}) } });
+}
 let sharedPresets = [], presetsDb = null, filePresets = [];
 function presetByKey(v) { return (v.startsWith('f:') ? filePresets : sharedPresets).find(x => x.id === v.slice(2)); }
 function cleanFx(list) {
@@ -2343,7 +2425,7 @@ function renderPresets() {
   Object.entries(FX_PRESETS).forEach(([n, types]) => {
     const c = mkBtn('', 'cardApply', false); c.className = 'presetCard'; c.dataset.name = n;
     const t = document.createElement('strong'); t.textContent = n.replace('NightLights ', '');
-    const d = document.createElement('span'); d.textContent = types.map(x => FX_DEFS[x].name).join(' > ');
+    const d = document.createElement('span'); d.textContent = types.map(x => FX_DEFS[typeof x === 'string' ? x : x.type].name).join(' > ');
     c.textContent = ''; c.append(t, d); grid.append(c);
   });
   box.append(grid);
@@ -2374,12 +2456,12 @@ $('presetBox').addEventListener('click', async e => {
   if (act === 'presetEdit') {
     const v = $('presetPick').value;
     if (!v) { kitMsg('Choose a preset to edit'); return; }
-    if (v.startsWith('b:')) { const n = v.slice(2); presetDraft = { key: v, id: null, name: n, fx: cleanFx(FX_PRESETS[n].map(t => ({ type: t }))) }; }
+    if (v.startsWith('b:')) { const n = v.slice(2); presetDraft = { key: v, id: null, name: n, fx: cleanFx(chainOf(FX_PRESETS[n])) }; }
     else { const p = presetByKey(v); if (p) presetDraft = { key: v, id: p.id, name: p.name, fx: cleanFx(p.fx) }; }
     renderPresets(); return;
   }
   if (act === 'presetImport') { $('presetJson').click(); return; }
-  if (act === 'cardApply') { const types = FX_PRESETS[b.dataset.name]; if (types) { tr.fx = cleanFx(types.map(t => ({ type: t }))); renderFx(); kitMsg(tr.name + ' now uses ' + b.dataset.name); } return; }
+  if (act === 'cardApply') { const types = FX_PRESETS[b.dataset.name]; if (types) { tr.fx = cleanFx(chainOf(types)); renderFx(); kitMsg(tr.name + ' now uses ' + b.dataset.name); } return; }
   if (act === 'presetNew') { presetDraft = { key: null, id: null, name: 'My preset', fx: [] }; renderPresets(); return; }
   if (act === 'presetApply') {
     const fx = presetDraft ? presetDraft.fx : null;
@@ -2387,7 +2469,7 @@ $('presetBox').addEventListener('click', async e => {
     else {
       const v = $('presetPick').value;
       if (!v) { kitMsg('Choose a preset first'); return; }
-      if (v.startsWith('b:')) tr.fx = cleanFx(FX_PRESETS[v.slice(2)].map(t => ({ type: t })));
+      if (v.startsWith('b:')) tr.fx = cleanFx(chainOf(FX_PRESETS[v.slice(2)]));
       else { const p = presetByKey(v); if (p) tr.fx = cleanFx(p.fx); }
     }
     renderFx(); kitMsg(tr.name + ' now uses the preset. It takes effect the next time you press Play'); return;
@@ -3954,6 +4036,165 @@ function fadeEnv(g, c, tr, t0, into) {
     if (fs > t0) { g.gain.setValueAtTime(tr.vol, fs); g.gain.linearRampToValueAtTime(0, endT); }
   }
 }
+// ---------- Every slider is a rotary knob now (the original slider still holds the value) ----------
+const knobs = [];
+function makeKnob(r) {
+  if (r.dataset.knob) return;
+  r.dataset.knob = '1';
+  const k = document.createElement('div');
+  k.className = 'knob'; k.tabIndex = 0; k.setAttribute('role', 'slider');
+  k.setAttribute('aria-label', r.getAttribute('aria-label') || r.title || 'knob');
+  const rot = document.createElement('div'); rot.className = 'knob-rot'; k.append(rot);
+  r.before(k); r.style.display = 'none';
+  const frac = () => { const span = (+r.max - +r.min) || 1; return Math.max(0, Math.min(1, (+r.value - +r.min) / span)); };
+  const sync = () => {
+    const f = frac();
+    rot.style.transform = 'rotate(' + (-135 + 270 * f) + 'deg)';
+    k.style.setProperty('--arc', (270 * f) + 'deg');
+    k.setAttribute('aria-valuenow', r.value);
+    k.title = (r.getAttribute('aria-label') || '') + ': ' + r.value;
+  };
+  const setV = v => {
+    const min = +r.min, max = +r.max, st = +r.step || 0;
+    let x = Math.min(max, Math.max(min, v));
+    if (st) x = Math.round((x - min) / st) * st + min;
+    r.value = x; sync();
+    r.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  let drag = null;
+  k.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    drag = { y: e.clientY, v: +r.value };
+    k.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  k.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const range = (+r.max - +r.min) || 1;
+    setV(drag.v + (drag.y - e.clientY) * range / 200 * (e.shiftKey ? 0.1 : 1));
+  });
+  k.addEventListener('pointerup', () => { drag = null; });
+  k.addEventListener('wheel', e => {
+    e.preventDefault();
+    const range = (+r.max - +r.min) || 1;
+    setV(+r.value + (e.deltaY < 0 ? 1 : -1) * range / 100);
+  }, { passive: false });
+  k.addEventListener('dblclick', () => setV(+r.defaultValue || (+r.min + (+r.max - +r.min) / 2)));
+  k.addEventListener('keydown', e => {
+    const step = +r.step || 1;
+    if (['ArrowUp', 'ArrowRight'].includes(e.key)) { setV(+r.value + step); e.preventDefault(); }
+    if (['ArrowDown', 'ArrowLeft'].includes(e.key)) { setV(+r.value - step); e.preventDefault(); }
+  });
+  r.addEventListener('input', sync);
+  sync();
+  knobs.push(sync);
+}
+setInterval(() => knobs.forEach(f => f()), 250);
+new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(nd => {
+  if (nd.nodeType !== 1) return;
+  if (nd.matches && nd.matches('input[type=range]')) makeKnob(nd);
+  if (nd.querySelectorAll) nd.querySelectorAll('input[type=range]').forEach(makeKnob);
+}))).observe(document.body, { childList: true, subtree: true });
+document.querySelectorAll('input[type=range]').forEach(makeKnob);
+// ---------- Zoom: buttons on the toolbar, and Ctrl/Cmd + scroll wheel over the timeline ----------
+(function zoomControls() {
+  const ed = document.querySelector('.edittools');
+  const zIn = mkBtn('+', 'zoomIn', false), zOut = mkBtn('\u2212', 'zoomOut', false);
+  zIn.title = 'Zoom in'; zOut.title = 'Zoom out'; zIn.setAttribute('aria-label', 'Zoom in'); zOut.setAttribute('aria-label', 'Zoom out');
+  ed.insertBefore(zIn, ed.firstChild.nextSibling);
+  ed.insertBefore(zOut, zIn.nextSibling);
+  const zoomSlider = $('zoom'); zoomSlider.max = 400;
+  function setZoom(v) {
+    px = Math.max(20, Math.min(400, v));
+    zoomSlider.value = Math.round(px);
+    render(); updateClock();
+  }
+  zIn.addEventListener('click', () => setZoom(px * 1.25));
+  zOut.addEventListener('click', () => setZoom(px / 1.25));
+  const arr = $('arr');
+  arr.addEventListener('wheel', e => {
+    if (!(e.ctrlKey || e.metaKey)) return; // plain scrolling still scrolls the timeline
+    e.preventDefault();
+    const rect = arr.getBoundingClientRect(), mx = e.clientX - rect.left;
+    const timeUnderMouse = (arr.scrollLeft + mx - HDR) / px;
+    setZoom(e.deltaY < 0 ? px * 1.15 : px / 1.15);
+    arr.scrollLeft = Math.max(0, HDR + timeUnderMouse * px - mx); // keep the spot under the mouse fixed
+  }, { passive: false });
+})();
+
+// ---------- Mic level meter with an input volume slider, at the top of the screen ----------
+(function micMeter() {
+  const bar = document.createElement('div');
+  bar.id = 'micBar'; bar.className = 'micbar';
+  const lab = document.createElement('span'); lab.className = 'ctl'; lab.textContent = 'Mic';
+  const meter = document.createElement('div'); meter.className = 'meter';
+  const fill = document.createElement('div'); fill.className = 'fill'; meter.append(fill);
+  const btn = mkBtn('Start mic meter', 'micToggle', false);
+  const gain = document.createElement('input');
+  gain.type = 'range'; gain.min = 0; gain.max = 2; gain.step = 0.01; gain.value = 1; gain.id = 'micGain';
+  gain.setAttribute('aria-label', 'Mic input volume');
+  const db = document.createElement('span'); db.className = 'ctl'; db.id = 'micDb'; db.textContent = '-inf dB';
+  bar.append(lab, meter, btn, gain, db);
+  $('folderBar').insertBefore(bar, $('folderBar').firstChild);
+  let stream = null, src = null, g = null, an = null, raf = 0, sink = null;
+  function stop() {
+    cancelAnimationFrame(raf);
+    if (src) src.disconnect(); if (g) g.disconnect(); if (an) an.disconnect(); if (sink) sink.disconnect();
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = src = g = an = sink = null;
+    fill.style.width = '0%'; db.textContent = '-inf dB';
+    btn.textContent = 'Start mic meter'; btn.setAttribute('aria-pressed', 'false');
+  }
+  function loop() {
+    if (!an) return;
+    const buf = new Float32Array(an.fftSize);
+    an.getFloatTimeDomainData(buf);
+    let peak = 0; for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i]));
+    const level = Math.min(1, peak);
+    fill.style.width = (level * 100).toFixed(1) + '%';
+    fill.style.background = level > 0.9 ? 'var(--red)' : level > 0.7 ? 'var(--lamp)' : 'var(--cyan)';
+    db.textContent = (level > 0 ? (20 * Math.log10(level)).toFixed(1) : '-inf') + ' dB';
+    raf = requestAnimationFrame(loop);
+  }
+  btn.addEventListener('click', async () => {
+    if (stream) { stop(); return; }
+    init();
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints() });
+    } catch (err) { kitMsg('Allow microphone access to show the mic meter'); return; }
+    src = ctx.createMediaStreamSource(stream);
+    g = ctx.createGain(); g.gain.value = +gain.value;
+    an = ctx.createAnalyser(); an.fftSize = 1024;
+    sink = ctx.createGain(); sink.gain.value = 0;
+    src.connect(g); g.connect(an); an.connect(sink); sink.connect(ctx.destination); // listens only, no sound back out
+    btn.textContent = 'Stop mic meter'; btn.setAttribute('aria-pressed', 'true');
+    loop();
+  });
+  gain.addEventListener('input', () => { if (g) g.gain.value = +gain.value; });
+})();
+// ---------- Mic meter sits to the right of the tempo control ----------
+(function placeMicMeter() {
+  const tempo = $('bpm').closest('label');
+  const mic = $('micBar');
+  mic.style.marginRight = '0';
+  tempo.after(mic);
+})();
+// ---------- Stars that twinkle in and out across the whole screen ----------
+(function starfield() {
+  const field = document.createElement('div');
+  field.id = 'starfield'; field.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 180; i++) {
+    const st = document.createElement('i');
+    const size = Math.random() < 0.7 ? 1 : 2;
+    st.style.width = size + 'px'; st.style.height = size + 'px';
+    st.style.left = (Math.random() * 100).toFixed(2) + '%';
+    st.style.top = (Math.random() * 100).toFixed(2) + '%';
+    st.style.setProperty('--d', (2 + Math.random() * 5).toFixed(2) + 's');
+    st.style.setProperty('--dl', (-Math.random() * 6).toFixed(2) + 's');
+    st.style.setProperty('--o', (0.45 + Math.random() * 0.5).toFixed(2));
+    field.append(st);
+  }
+  document.body.append(field);
+})();
 </script>
 </body>
 </html>
