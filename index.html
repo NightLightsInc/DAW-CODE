@@ -246,6 +246,10 @@ footer{display:none}
 .micbar .meter{width:140px;height:8px;border-radius:6px;background:#0a0712;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}
 .micbar .fill{height:100%;width:0%;background:var(--cyan);border-radius:6px;transition:width .05s linear}
 .micbar input[type=range]{width:80px}
+.catHead{margin:10px 0 4px;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--cyan);cursor:pointer;user-select:none;padding:4px 6px;border-radius:6px;background:linear-gradient(90deg,color-mix(in srgb,var(--lamp) 12%,transparent),transparent)}
+.catHead:hover{color:#fff}
+.lane.droptarget .body{box-shadow:inset 0 0 0 2px var(--cyan)}
+.tcolor{width:22px;height:18px;padding:0;border:none;background:none;cursor:pointer}
 /* ===== Glow: buttons and dials =====*/
 button,.btn,.fbtn,.ctog{box-shadow:0 0 8px color-mix(in srgb,var(--lamp) 30%,transparent),0 0 2px color-mix(in srgb,var(--cyan) 40%,transparent),inset 0 1px 0 rgba(255,255,255,.08)!important;transition:box-shadow .2s,border-color .2s,background .2s,transform .05s}
 button:hover,.btn:hover,.fbtn:hover,.ctog:hover{box-shadow:0 0 14px color-mix(in srgb,var(--lamp) 60%,transparent),0 0 4px color-mix(in srgb,var(--cyan) 60%,transparent),inset 0 1px 0 rgba(255,255,255,.12)!important}
@@ -270,6 +274,13 @@ body{background:transparent!important}
 #instSel,#drumSel,#guitarSel,#addInst,#addDrum,#addGuitar{display:none !important}
 #allInstSel{font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:12px;min-width:200px}
 .brand h1{font-family:'Permanent Marker','Rock Salt',cursive,sans-serif!important;font-size:26px!important;font-weight:400!important;letter-spacing:1px!important;transform:rotate(-2deg);text-shadow:0 0 10px color-mix(in srgb,var(--lamp) 40%,transparent)}
+/* ===== Beginner mode popup ===== */
+.beginnerpop{position:fixed;z-index:200;max-width:320px;padding:14px 16px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--lamp);box-shadow:0 0 24px color-mix(in srgb,var(--lamp) 35%,transparent),var(--shadow)}
+.beginnerpop[hidden]{display:none}
+.beginnerpop h3{margin:0 24px 6px 0;font-size:15px;color:#fff}
+.beginnerpop p{margin:0 0 10px;font-size:13px;line-height:1.45;color:var(--text)}
+.beginnerpop .bx{position:absolute;top:6px;right:8px;padding:0 6px;font-size:16px;line-height:18px}
+.beginnerpop .bgot{font-size:12px}
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -318,6 +329,7 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
     <button id="play" aria-pressed="false">Play</button>
     <button id="pause">Pause</button>
     <button id="stop">Stop</button>
+    <button id="rewind">Rewind</button>
     <button id="metro" aria-pressed="false">Metronome</button>
     <span class="latWrap">
       <button id="latencyBtn" aria-expanded="false">Latency</button>
@@ -459,7 +471,7 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
     </section>
     <input id="kitFiles" type="file" accept="audio/*" multiple hidden>
     <input id="voiceFile" type="file" accept="audio/*" hidden>
-    <input id="kitJson" type="file" accept=".json,application/json" hidden>
+    <input id="kitJson" type="file" accept=".zip,.json,application/zip,application/json" hidden>
     <input id="kitFolder" type="file" accept="audio/*" webkitdirectory multiple hidden>
     <input id="presetJson" type="file" accept=".json,application/json" hidden>
     <div class="bar">
@@ -519,7 +531,8 @@ function init() {
 }
 
 function env(g, t, peak, dur) {
-  g.gain.setValueAtTime(peak, t);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(peak, t + 0.003);
   g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
 }
 function noise(out, t, dur, type, freq, q, peak) {
@@ -542,7 +555,7 @@ function voice(v, vol, s, t, slot, r, dest) {
   const pan = ctx.createStereoPanner(); pan.pan.value = bpan[r] || 0;
   out.connect(pan); pan.connect(dest || master);
   if (v.kind === 'guitar') { const src = ctx.createBufferSource(); src.buffer = pluckBuffer(v.f, v.gType); src.connect(out); src.start(t); return; }
-  if (slot) { const src = ctx.createBufferSource(); src.buffer = slot.buf; src.playbackRate.value = Math.pow(2, (bpitch[r] || 0) / 12) * (slot.root ? v.f / slot.root : 1); src.connect(out); if (noteBend && noteLen) src.playbackRate.exponentialRampToValueAtTime(src.playbackRate.value * Math.pow(2, noteBend / 12), t + noteLen); src.start(t); if (noteLen) src.stop(t + noteLen + 0.05); return; }
+  if (slot) { out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(vol, t + 0.003); const src = ctx.createBufferSource(); src.buffer = slot.buf; src.playbackRate.value = Math.pow(2, (bpitch[r] || 0) / 12) * (slot.root ? v.f / slot.root : 1); src.connect(out); if (noteBend && noteLen) src.playbackRate.exponentialRampToValueAtTime(src.playbackRate.value * Math.pow(2, noteBend / 12), t + noteLen); src.start(t); if (noteLen) src.stop(t + noteLen + 0.05); return; }
   switch (v.kind) {
     case 'kick':  { const o = osc(out, t, 'sine', 150, 0.4, 1, 400); o.frequency.exponentialRampToValueAtTime(40, t + 0.15); break; }
     case 'snare': noise(out, t, 0.18, 'highpass', 1200, 0.7, 0.8); osc(out, t, 'triangle', 190, 0.12, 0.5, 2000); break;
@@ -645,7 +658,8 @@ function render() {
     const v = document.createElement('input');
     v.type = 'range'; v.min = 0; v.max = 1; v.step = .01; v.value = tr.vol; v.dataset.tvol = i;
     nm.style.color = tr.color;
-    h.append(nm, btns, v);
+    const ci = document.createElement('input'); ci.type = 'color'; ci.value = tr.color; ci.dataset.tcolor = i; ci.className = 'tcolor'; ci.title = 'Track colour'; ci.setAttribute('aria-label', 'Track colour');
+    h.append(nm, ci, btns, v);
     const body = document.createElement('div');
     body.className = 'body'; body.style.width = W + 'px'; body.style.setProperty('--bw', (gridSec() * px) + 'px');
     tr.clips.forEach(c => {
@@ -680,6 +694,7 @@ function render() {
   placePlayhead();
   renderRoll();
   renderMixer();
+  refreshTrackPickers();
   $('selCount').textContent = clipSet.size ? clipSet.size + ' takes selected' : (trackSet.size > 1 ? trackSet.size + ' tracks selected' : '');
 }
 function placePlayhead() { $('ph').style.left = (HDR + pos * px) + 'px'; }
@@ -714,7 +729,7 @@ function scheduleClips(from, when) {
     });
   });
 }
-function stopSrc() { srcs.forEach(s => { try { s.stop(); } catch (e) {} }); srcs = []; if (playBus) { playBus.disconnect(); playBus = null; } }
+function stopSrc() { srcs.forEach(s => { try { s.stop(); } catch (e) {} }); srcs = []; if (playBus) { playBus.disconnect(); playBus = null; } playNodes.forEach(n => n.disconnect()); playNodes = []; }
 function beatTick() {
   while (nextBeat < ctx.currentTime + 0.1) {
     fireBeat(beatK % loopLen(), nextBeat);
@@ -745,7 +760,7 @@ function pause() {
   if (mixRec) endMix();
   updateButtons(); updateClock(); placePlayhead();
 }
-function stopAll() { pause(); pos = 0; updateClock(); placePlayhead(); }
+function stopAll() { pause(); updateClock(); placePlayhead(); }
 function togglePlay() { playing ? pause() : play(pos); }
 function frame() {
   if (!playing) { rafOn = false; return; }
@@ -753,7 +768,7 @@ function frame() {
   const arr = $('arr'), x = HDR + pos * px;
   if (x > arr.scrollLeft + arr.clientWidth - 60) arr.scrollLeft = x - arr.clientWidth * 0.3;
   const end = clipsEnd();
-  if (end > 0 && !rec && !mixRec && pos > end + 0.5) pause();
+  if (end > 0 && !rec && !mixRec && pos > end + 0.5) play(0);
   requestAnimationFrame(frame);
 }
 
@@ -873,6 +888,7 @@ function buildBeat() {
   refreshKit();
   const box = $('beat'); box.innerHTML = '';
   const slots = curSlots();
+  let lastCat = null;
   VOICES.forEach((v, r) => {
     const row = document.createElement('div');
     row.className = 'brow' + (bmuted[r] ? ' muted' : ''); row.dataset.r = r;
@@ -912,6 +928,8 @@ function buildBeat() {
       b.setAttribute('aria-label', `${v.name} step ${c + 1}`);
       row.append(b);
     }
+    const cat = catOf(v, slots[r]); row.dataset.cat = cat;
+    if (cat !== lastCat) { const hd = document.createElement('div'); hd.className = 'catHead'; hd.dataset.cat = cat; hd.dataset.open = '1'; hd.textContent = '\u25BE ' + cat; box.append(hd); lastCat = cat; }
     box.append(row);
   });
   refreshBeat();
@@ -948,7 +966,7 @@ async function loadSampleInto(r, f) {
   init(); ensureEditable();
   const slots = curSlots();
   try {
-    slots[r] = { name: f.name, root: VOICES[r].kind === 'synth' ? VOICES[r].f : undefined, buf: await ctx.decodeAudioData(await f.arrayBuffer()) };
+    slots[r] = { name: f.name, root: midiFreq(60), buf: await ctx.decodeAudioData(await f.arrayBuffer()) };
     kitMsg('');
   } catch (err) { kitMsg(`Could not read ${f.name}`); }
   buildBeat();
@@ -1007,18 +1025,18 @@ function saveKit() {
     tune: VOICES.map((_, r) => ({ vol: bvol[r], pitch: bpitch[r], pan: bpan[r] }))
   };
   const safe = k.name.replace(/[^\w-]+/g, '_') || 'kit';
-  saveFile(new Blob([JSON.stringify(data)], { type: 'application/json' }), safe + '.nlkit.json');
+  saveFile(makeZip([{ name: 'kit.json', data: new TextEncoder().encode(JSON.stringify(data)) }]), safe + '.nlkit.zip');
   kitMsg('Kit saved');
 }
 async function openKit(file) {
   init();
   try {
-    const data = JSON.parse(await file.text());
+    const data = JSON.parse(await readKitText(file));
     if (data.format !== 'nightlights-kit' || !Array.isArray(data.slots)) throw new Error('bad kit');
     while (VOICES.length < data.slots.length) addChannel();
     const slots = await Promise.all(VOICES.map(async (_, r) => {
       const s = data.slots[r];
-      return s ? { name: s.name, buf: await ctx.decodeAudioData(fromBase64(s.wav)) } : null;
+      return s ? { name: s.name, root: midiFreq(60), buf: await ctx.decodeAudioData(fromBase64(s.wav)) } : null;
     }));
     kits.push({ name: data.name || 'Imported kit', slots });
     kitIdx = kits.length - 1;
@@ -1247,6 +1265,7 @@ function scheduleMidi(from, when, bus) {
   const step = sd(), solo = tracks.some(t => t.solo);
   tracks.forEach(tr => {
     if (tr.mute || (solo && !tr.solo)) return;
+    const midiTg = ctx.createGain(); midiTg.connect(tr.bus.in); playNodes.push(midiTg);
     tr.clips.forEach(c => {
       if (!c.midi) return;
       c.notes.forEach(n => {
@@ -1254,7 +1273,7 @@ function scheduleMidi(from, when, bus) {
         const st = c.start + n.s * step, len = Math.min(n.len, c.steps - n.s) * step;
         if (st + len <= from) return;
         noteLen = len; noteBend = n.b || 0;
-        voice({ ...c.inst, f: midiFreq(n.p + (c.pitch || 0)) }, tr.vol * (n.v ?? 1), n.s, when + Math.max(0, st - from), c.slot, -1, tr.bus.in);
+        voice({ ...c.inst, f: midiFreq(n.p + (c.pitch || 0)) }, tr.vol * (n.v ?? 1), n.s, when + Math.max(0, st - from), c.slot, -1, midiTg);
         noteLen = null; noteBend = 0;
       });
     });
@@ -1308,6 +1327,7 @@ function renderRoll() {
     g.fillRect(KEY_W + s * CELL, 0, 1, cv.height);
   }
   // Notes that sit in the chosen scale use the track colour; notes outside it are dimmed with a red edge
+  for (let b = 0; b * 16 < c.steps; b++) { g.fillStyle = '#9b8bb8'; g.font = '10px sans-serif'; g.fillText('bar ' + (b + 1), KEY_W + b * 16 * CELL + 3, 10); }
   const base = tr ? tr.color : '#b26bff';
   c.notes.forEach(n => {
     const x = KEY_W + n.s * CELL + 1, y = (ROLL_HI - n.p) * ROW_H + 1, w = n.len * CELL - 2, h = ROW_H - 3;
@@ -1339,6 +1359,7 @@ $('roll').addEventListener('pointerdown', e => {
   const q = rollPos(e);
   if (q.s < 0 || q.s >= c.steps || q.p < ROLL_LO || q.p > ROLL_HI) return;
   const n = rollNoteAt(c, q.s, q.p);
+  if (rollCutMode && n) { cutNoteAt(c, n, q.s); afterRollEdit(); return; }
   if (n && Math.abs(q.x - (n.s + n.len) * CELL) <= 6) {
     rollDrag = { mode: 'resize', c, n }; $('roll').setPointerCapture(e.pointerId); return;
   }
@@ -1941,6 +1962,7 @@ document.addEventListener('pointermove', e => {
   drag.c.start = s;
   if (drag.group) drag.group.forEach(g => { if (g.clip !== drag.c) g.clip.start = Math.max(0, g.s0 + (s - drag.s0)); });
   drag.el.style.left = (s * px) + 'px';
+  { const under = document.elementFromPoint(e.clientX, e.clientY); const ln = under && under.closest('.lane'); document.querySelectorAll('.lane.droptarget').forEach(l => l.classList.remove('droptarget')); if (ln && !drag.group) ln.classList.add('droptarget'); }
 });
 document.addEventListener('pointerup', e => {
   if (!drag) return;
@@ -1965,7 +1987,7 @@ document.addEventListener('pointerup', e => {
   if (playing) play(pos);
 });
 $('lanes').addEventListener('click', e => {
-  if (justDragged) return;
+  if (justDragged || e.target.dataset.tcolor !== undefined) return;
   const row = e.target.closest('.lane'); if (!row) return;
   const i = +row.dataset.i, tr = tracks[i];
   const b = e.target.closest('button');
@@ -2172,7 +2194,7 @@ let metroNext = 0, metroCount = 0, metroTimer = null;
 function metroTick() {
   if (!metroOn) return;
   while (metroNext < ctx.currentTime + 0.1) {
-    if (!playing) metroClick(metroNext, metroCount % 4 === 0);
+    // accents and clicks come from the beat loop, so they run only while the song plays
     metroNext += 60 / bpm; metroCount++;
   }
   metroTimer = setTimeout(metroTick, 25);
@@ -2436,7 +2458,7 @@ function renderPresets() {
   sharedPresets.forEach(p => pick.append(new Option('Shared: ' + p.name, 's:' + p.id)));
   filePresets.forEach(p => pick.append(new Option('File: ' + p.name, 'f:' + p.id)));
   if (presetDraft && presetDraft.key) pick.value = presetDraft.key;
-  row.append(pick, mkBtn('Import preset file', 'presetImport', false), mkBtn('Edit selected', 'presetEdit', false), mkBtn('New preset', 'presetNew', false), mkBtn('Apply to FX track', 'presetApply', false));
+  row.append(makeTrackPick(), pick, mkBtn('Import preset file', 'presetImport', false), mkBtn('Edit selected', 'presetEdit', false), mkBtn('New preset', 'presetNew', false), mkBtn('Apply to FX track', 'presetApply', false));
   box.append(row);
   if (presetDraft) box.append(renderDraft());
   const note = document.createElement('p'); note.className = 'fxempty';
@@ -3270,7 +3292,7 @@ async function saveProjectZip() {
   }
   const mix = await renderTracks(tracks, sr);
   if (mix) files.push({ name: 'full-mix.wav', data: encodeWavStereo(mix) });
-  for (const f of files) { if (f.name.startsWith('tracks/')) saveFile(new Blob([f.data], { type: 'audio/wav' }), f.name.replace('tracks/', '')); }
+  // Track files are saved only inside the zip
   if (!files.length) return;
   saveFile(makeZip(files), 'nightlights-project-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.zip');
   kitMsg(`Saved ${files.length} files in a zip. Instrument clips are not included as audio`);
@@ -4250,6 +4272,201 @@ document.querySelectorAll('input[type=range]').forEach(makeKnob);
   // Keep the single menu in step when synth presets change
   const prev = renderInstSel;
   renderInstSel = function () { prev(); fill(); };
+})();
+// ---------- Helpers for the fixes ----------
+let playNodes = [];
+let rollCutMode = false;
+function catOf(v, slot) {
+  if (v.kind === 'synth') return 'Synths';
+  if (v.kind === 'guitar') return 'Guitars';
+  if (v.kind) return 'Drums';
+  if (slot) return 'Samples';
+  return 'Empty';
+}
+function cutNoteAt(c, n, step) {
+  if (step <= n.s || step >= n.s + n.len) return;
+  const rest = n.len - (step - n.s);
+  n.len = step - n.s;
+  c.notes.push({ s: step, len: rest, p: n.p, v: n.v, b: n.b });
+}
+async function readKitText(file) {
+  const buf = await file.arrayBuffer();
+  if (!/\.zip$/i.test(file.name)) return new TextDecoder().decode(buf);
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  if (dv.getUint32(0, true) !== 0x04034b50) throw new Error('not a zip file');
+  const method = dv.getUint16(8, true), size = dv.getUint32(18, true);
+  const nlen = dv.getUint16(26, true), elen = dv.getUint16(28, true);
+  if (method !== 0) throw new Error('compressed zips are not supported');
+  const start = 30 + nlen + elen;
+  return new TextDecoder().decode(u8.subarray(start, start + size));
+}
+function makeTrackPick() {
+  const sel2 = document.createElement('select');
+  sel2.id = 'presetTrack'; sel2.setAttribute('aria-label', 'Track to apply presets to');
+  tracks.forEach((t, i) => sel2.append(new Option(t.name, i)));
+  sel2.value = fxSel;
+  sel2.addEventListener('change', () => { fxSel = +sel2.value; renderFx(); renderMixer(); });
+  return sel2;
+}
+function refreshTrackPickers() {
+  ['fxTrackSel', 'presetTrack'].forEach(id => {
+    const el = $(id); if (!el) return;
+    el.innerHTML = '';
+    tracks.forEach((t, i) => el.append(new Option(t.name, i)));
+    el.value = fxSel;
+  });
+}
+// Buttons added to the piano roll header
+(function rollButtons() {
+  const rb = document.querySelector('#rollSec .bname');
+  if (!rb) return;
+  rb.append(mkBtn('Play / Pause', 'rollPlay', false), mkBtn('Cut notes', 'rollCut', false));
+  rb.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.act === 'rollPlay') togglePlay();
+    if (b.dataset.act === 'rollCut') { rollCutMode = !rollCutMode; b.setAttribute('aria-pressed', String(rollCutMode)); }
+  });
+})();
+$('rewind').addEventListener('click', () => { pos = 0; if (playing) play(0); else { updateClock(); placePlayhead(); } });
+// Rename a track by double-clicking its name
+$('lanes').addEventListener('dblclick', e => {
+  if (!e.target.closest('.nm')) return;
+  const row = e.target.closest('.lane'); if (!row) return;
+  const i = +row.dataset.i;
+  const name = prompt('Track name', tracks[i].name);
+  if (name && name.trim()) { tracks[i].name = name.trim().slice(0, 30); render(); refreshTrackPickers(); }
+});
+// Track colour picker in the track header
+$('lanes').addEventListener('input', e => {
+  if (e.target.dataset.tcolor !== undefined) { tracks[+e.target.dataset.tcolor].color = e.target.value; render(); }
+});
+// Collapse or expand a category of instruments
+$('beat').addEventListener('click', e => {
+  const hd = e.target.closest('.catHead'); if (!hd) return;
+  const cat = hd.dataset.cat, hide = hd.dataset.open !== '0';
+  hd.dataset.open = hide ? '0' : '1';
+  hd.textContent = (hide ? '\u25B8 ' : '\u25BE ') + cat;
+  document.querySelectorAll('#beat .brow[data-cat="' + cat + '"]').forEach(r => { r.style.display = hide ? 'none' : ''; });
+});
+// ---------- Beginner mode: click any control to learn what it does ----------
+(function beginnerMode() {
+  const EXPLAIN = {
+    play: ['Play', 'Starts playback from the playhead. Press it again to pause.'],
+    pause: ['Pause', 'Stops playback and keeps the playhead where it is.'],
+    stop: ['Stop', 'Stops playback and keeps your place.'],
+    rewind: ['Rewind', 'Moves the playhead back to the start of the song.'],
+    rec: ['Record', 'Records your mic onto the selected track at the playhead. Press again to stop.'],
+    metro: ['Metronome', 'Plays a click on every beat while the song plays.'],
+    latencyBtn: ['Latency', 'Shows how far recordings are shifted to line up with the beat, and lets you pick your input and output devices.'],
+    addTrack: ['Add track', 'Adds an empty track (a row) to the timeline.'],
+    splitBtn: ['Split at playhead', 'Cuts the take under the playhead into two pieces.'],
+    dupTrack: ['Duplicate', 'Copies the selected takes, or the selected tracks, and places the copies to the left.'],
+    delSel: ['Delete', 'Removes the selected takes. Turn on Ripple to close the gap.'],
+    delTrack: ['Delete track', 'Removes the selected tracks.'],
+    selAll: ['Select all tracks', 'Selects every take on the timeline so you can move, copy, or delete them together.'],
+    gridSel: ['Grid', 'Sets how far takes snap when you move them. Bar is the widest step, 1/32 the narrowest.'],
+    snap: ['Snap', 'When on, takes and split points line up with the grid.'],
+    zoomIn: ['Zoom in', 'Makes the timeline bigger so you can see more detail. Ctrl (or Cmd) and scroll also zooms.'],
+    zoomOut: ['Zoom out', 'Makes the timeline smaller so you can see more of the song.'],
+    zoom: ['Zoom', 'Drag to zoom the timeline in or out.'],
+    bpm: ['Tempo', 'The speed of the beat in beats per minute. Drag to change it, from 10 to 300.'],
+    master: ['Master volume', 'Sets the level of the whole mix.'],
+    saveTrack: ['Save project (.zip)', 'Saves every track as WAV files plus a full mix, in one zip.'],
+    export: ['Export mix', 'Records the full mix as a WAV, MP3, or MP4 file.'],
+    fsBtn: ['Full screen', 'Fills your screen with the DAW. Press Esc to leave.'],
+    publishBtn: ['Publish', 'Downloads your mix and opens YouTube or SoundCloud so you can upload it.'],
+    tlBtn: ['Record timelapse', 'Records this screen and its sound until you press Stop, then saves the video.'],
+    monBtn: ['Monitor input', 'Plays what your mic or instrument hears through your speakers, so you can play along.'],
+    atBtn: ['Auto-tune take', 'Makes a tuned copy of the selected take that snaps it to the chosen key. The original stays unchanged.'],
+    atAmt: ['Strength', 'How strongly each note is pulled to the key. 100% is full correction.'],
+    atRetune: ['Retune speed', 'How quickly the correction can move from one note to the next. Lower is faster.'],
+    atHum: ['Humanize', 'Keeps some natural movement in the pitch so the result sounds less robotic.'],
+    instAll: ['Instrument', 'Choose a synth, drum, or guitar to add as a new channel in the rack.'],
+    addInst: ['Add instrument', 'Adds the instrument chosen in the menu to the rack.'],
+    sfxAdd: ['Add sound effect', 'Places the chosen sound effect on the selected track at the playhead.'],
+    presetPick: ['Preset', 'Choose a preset to load onto the track selected above it.'],
+    settingsBtn: ['Settings', 'Opens the tools that are not used every time: file tools, timelapse, auto-tune folders, and more.']
+  };
+  const ACT = {
+    presetImport: ['Import preset file', 'Loads a preset file you saved earlier onto the selected track.'],
+    presetApply: ['Apply to FX track', 'Puts the chosen preset on the track selected above.'],
+    presetEdit: ['Edit selected', 'Opens the chosen preset so you can change its effects.'],
+    presetNew: ['New preset', 'Starts an empty effects chain you can build from scratch.'],
+    cardApply: ['Apply preset', 'Puts this preset on the track selected above.'],
+    fxadd: ['Add effect', 'Adds the chosen effect to the end of the track\'s effects chain.'],
+    mmute: ['Mute track', 'Silences this track. Click again to bring it back.'],
+    msolo: ['Solo track', 'Plays only this track. Click again to turn it off.'],
+    mfx: ['FX', 'Shows this track\'s effects so you can change them.'],
+    rollPlay: ['Play / Pause', 'Plays or pauses the song from the piano roll.'],
+    rollCut: ['Cut notes', 'When on, clicking a note splits it in two at that point.'],
+    rmch: ['Remove', 'Removes this instrument from the rack.'],
+    totl: ['To timeline', 'Adds this instrument\'s pattern to the timeline as a four-bar clip.'],
+    edit: ['Edit', 'Opens the synth editor for this instrument.'],
+    roll: ['Roll', 'Opens this instrument\'s piano roll.'],
+    sample: ['Sample', 'Loads your own audio file as the sound for this instrument.'],
+    audition: ['Test', 'Plays this instrument once so you can hear it.'],
+    bmute: ['Mute', 'Silences this instrument in the rack.']
+  };
+  const pop = document.createElement('div');
+  pop.id = 'beginnerPop'; pop.className = 'beginnerpop'; pop.hidden = true;
+  pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-live', 'polite');
+  const x = document.createElement('button'); x.type = 'button'; x.className = 'bx'; x.textContent = '\u00d7'; x.setAttribute('aria-label', 'Close explanation');
+  const h = document.createElement('h3');
+  const p = document.createElement('p');
+  const got = mkBtn('Got it', 'beginnerClose', false); got.className = 'bgot';
+  pop.append(x, h, p, got);
+  document.body.append(pop);
+  const hide = () => { pop.hidden = true; };
+  x.addEventListener('click', hide);
+  got.addEventListener('click', hide);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
+
+  function describe(el) {
+    const t = el.closest('button, input, select, label, canvas, .clip, .step, .lane, .catHead, .brow, .bl, .nm, #arr, .numbox, .fxcard, .presetCard, .musicItem');
+    if (!t) return ['Not a control', 'Click a button, slider, or track to learn what it does.'];
+    if (t.id && EXPLAIN[t.id]) return EXPLAIN[t.id];
+    const act = t.dataset && t.dataset.act;
+    if (act && ACT[act]) return ACT[act];
+    if (t.classList.contains('clip')) return ['Take', 'A piece of audio or a pattern on the timeline. Drag to move it, drag its edges to shorten or lengthen it, and double-click to delete it.'];
+    if (t.classList.contains('step')) return ['Beat step', 'One sixteenth of a bar in the rack. Click it to add or remove a hit.'];
+    if (t.classList.contains('lane')) return ['Track', 'A row on the timeline. Click to select it, double-click its name to rename it, and use the colour square to change its colour.'];
+    if (t.classList.contains('nm')) return ['Track name', 'Double-click to rename this track.'];
+    if (t.classList.contains('catHead')) return ['Instrument group', 'Click to collapse or expand this group of instruments.'];
+    if (t.classList.contains('brow')) return ['Instrument row', 'One instrument in the rack. Its steps are the hits it plays, and its controls set volume, pan, and pitch.'];
+    if (t.id === 'roll' || t.id === 'rollVel' || t.id === 'rollBend') return ['Piano roll', 'Click to add or remove notes. Drag notes to move them, and drag a note\'s right edge to change its length.'];
+    if (t.id === 'arr') return ['Timeline', 'Where your takes and patterns are arranged over time. Read the numbers along the top as bars.'];
+    if (t.type === 'range') return ['Slider', 'Drag to change this setting. The number box beside it lets you type an exact value.'];
+    if (t.tagName === 'CANVAS') return ['Display', 'A picture of the sound or the notes. It is not a control.'];
+    const label = (t.title || t.getAttribute('aria-label') || t.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60);
+    return [label || 'Control', 'This control does something when you use it. Turn Beginner off to use it normally.'];
+  }
+  function showAt(cx, cy, title, text) {
+    h.textContent = title; p.textContent = text;
+    pop.hidden = false;
+    const w = Math.min(320, innerWidth - 24);
+    pop.style.width = w + 'px';
+    pop.style.left = Math.max(12, Math.min(cx + 12, innerWidth - w - 12)) + 'px';
+    pop.style.top = Math.max(12, Math.min(cy + 12, innerHeight - pop.offsetHeight - 12)) + 'px';
+  }
+
+  const bb = mkBtn('Beginner', 'beginnerBtn', false);
+  bb.className = 'fbtn'; bb.title = 'Click anything to learn what it does';
+  $('folderBar').insertBefore(bb, $('settingsBtn'));
+  let on = false;
+  bb.addEventListener('click', () => {
+    on = !on;
+    bb.setAttribute('aria-pressed', String(on));
+    bb.textContent = on ? 'Beginner: on' : 'Beginner';
+    document.body.classList.toggle('beginner', on);
+    if (!on) hide();
+  });
+  document.addEventListener('click', e => {
+    if (!on) return;
+    if (e.target.closest('#beginnerBtn, #beginnerPop')) return;
+    e.preventDefault(); e.stopPropagation();
+    const [title, text] = describe(e.target);
+    showAt(e.clientX, e.clientY, title, text);
+  }, true);
 })();
 </script>
 </body>
