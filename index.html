@@ -284,6 +284,7 @@ body{background:transparent!important}
 .beginnerpop p{margin:0 0 10px;font-size:13px;line-height:1.45;color:var(--text)}
 .beginnerpop .bx{position:absolute;top:6px;right:8px;padding:0 6px;font-size:16px;line-height:18px}
 .beginnerpop .bgot{font-size:12px}
+.beginnerpop{max-width:340px}
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -4424,7 +4425,116 @@ $('beat').addEventListener('click', e => {
   got.addEventListener('click', hide);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
 
+  const HOW = {
+    play: 'Click once to start from the playhead. Click Pause or Play again to stop. Press Space on the keyboard does the same.',
+    pause: 'Freezes playback where it is. Press Play to carry on from exactly that spot.',
+    stop: 'Stops playback but keeps the playhead where it stopped, so Play resumes from there.',
+    rewind: 'Moves the playhead back to bar 1. If the song is playing, it keeps playing from the start.',
+    rec: 'Click to start recording from your mic into the selected track. Click again to stop, and the take appears on the timeline.',
+    metro: 'Click to turn the metronome on or off. When on, you hear a click on every beat while the song plays.',
+    latencyBtn: 'Click to open the panel. Type a delay in milliseconds, or press Auto-detect to measure it. Pick your input and output devices in the same panel.',
+    addTrack: 'Click to add a new empty track (a row) at the bottom of the timeline.',
+    splitBtn: 'Put the playhead inside a take, then click. The take is cut in two at the playhead, snapped to the grid if Snap is on.',
+    dupTrack: 'With takes selected, copies them just before the selection. With tracks selected, copies those tracks.',
+    delSel: 'Removes the selected takes. Turn on Ripple first to close the gap they leave.',
+    delTrack: 'Removes the selected tracks, including their takes. Click Select all tracks first to pick several.',
+    selAll: 'Selects every take on the timeline. Then you can drag them together, duplicate, or delete them.',
+    gridSel: 'Choose how big each snap step is. Bar is the widest; 1/32 is the finest. Takes snap to these steps when you move them.',
+    snap: 'When ticked, things line up with the grid. Untick it to place takes anywhere.',
+    zoomIn: 'Makes the timeline bigger. Holding Ctrl (or Cmd) and scrolling the mouse wheel over the timeline does the same.',
+    zoomOut: 'Makes the timeline smaller so you can see more of the song.',
+    zoom: 'Drag to zoom the timeline in or out.',
+    bpm: 'Drag to set the tempo in beats per minute. The beat, metronome, and grid all follow it.',
+    master: 'Drag to change the level of the whole mix.',
+    saveTrack: 'Click to download a zip with one WAV per track and a full mix WAV.',
+    export: 'Click to choose WAV, MP3, or MP4, then the full mix downloads.',
+    fsBtn: 'Click to fill the screen. Press Esc or click again to leave full screen.',
+    publishBtn: 'Choose YouTube or SoundCloud. Your mix downloads, the title and description are copied, and the upload page opens.',
+    tlBtn: 'Click to start recording this screen and its sound. Click Stop timelapse to save the video.',
+    monBtn: 'Click to hear your mic or instrument through the speakers while you play. Use headphones to avoid feedback.',
+    atBtn: 'Select a take first. Click to make a tuned copy snapped to the key and scale you picked. The original is kept.',
+    atAmt: 'Drag to the right for stronger correction, to the left for a more natural sound.',
+    atRetune: 'Drag left for fast, obvious correction; drag right for slow, smooth correction.',
+    atHum: 'Drag up to keep more of the natural pitch movement.',
+    instAll: 'Open the menu and pick a synth, drum, or guitar. Then click Add instrument.',
+    addInst: 'Adds the instrument picked in the menu as a new row in the rack.',
+    sfxAdd: 'Adds the chosen sound effect to the selected track at the playhead.',
+    presetPick: 'Pick a preset, then Apply to FX track. Presets are full effect chains you can edit.',
+    settingsBtn: 'Opens a panel with the less-used tools. Click outside the panel to close it.'
+  };
+  function detailFor(el) {
+    const t = el.closest('button, input, select, label, canvas, .clip, .step, .lane, .catHead, .brow, .bl, .nm, #arr, .numbox');
+    if (!t) return '';
+    const act = t.dataset && t.dataset.act;
+    return HOW[t.id] || (act && HOW[act]) || '';
+  }
+  // Effects: what each one does and how to use it
+  const EFX = {
+    eq: ['EQ', 'Boosts or cuts the low, middle, and high parts of the sound. Lower the lows to clear mud; lift the highs for air.', 'Drag the Low, Mid, and High sliders. Use Mid freq to choose which frequency the middle band works on.'],
+    comp: ['Compressor', 'Turns loud parts down so the level stays even. This makes vocals and drums sit steadily in the mix.', 'Raise Ratio for firmer control. Lower Threshold to squash more of the sound.'],
+    gate: ['Noise gate', 'Silences quiet background noise, such as hiss between phrases.', 'Raise Threshold until the noise stops, but not so high that quiet words are cut.'],
+    deess: ['De-esser', 'Reduces harsh "s" and "sh" sounds in vocals.', 'Set Frequency to where the harshness sits, then raise Threshold until it calms down.'],
+    exciter: ['Exciter', 'Adds sparkle and harmonics to the high end so the sound feels brighter.', 'Raise Drive for more sparkle. Use Mix to blend it in gently.'],
+    echo: ['Echo', 'Repeats the sound after a delay, like a slapback or a repeat pedal.', 'Time sets the gap between repeats. Feedback sets how many repeats you hear.'],
+    reverb: ['Reverb', 'Adds the sound of a room or hall around the sound.', 'Decay sets how long the room rings. Mix sets how much room you hear.'],
+    pingpong: ['Ping-pong delay', 'Repeats the sound and bounces each repeat from left to right.', 'Time sets the gap. Feedback sets how many bounces you hear.'],
+    dist: ['Distortion', 'Makes the sound crunchy and aggressive, like a guitar amp pushed hard.', 'Drive sets how hard it crunches. Tone sets how bright the crunch is.'],
+    sat: ['Saturation', 'Adds gentle warmth and grit, like tape or a valve amp.', 'Raise Drive for more warmth. Use Mix to keep some of the clean sound.'],
+    flanger: ['Flanger', 'A sweeping, jet-like swoosh made by two copies of the sound drifting in and out of step.', 'Rate sets the speed of the sweep. Feedback makes it more intense.'],
+    softclip: ['Soft clipper', 'Rounds off the loudest peaks so they do not sound harsh.', 'Threshold sets where rounding starts. Post gain sets the level after rounding.'],
+    bitcrush: ['Bit crusher', 'Makes the sound lo-fi and gritty by reducing its detail.', 'Lower Bit depth for a rougher sound. Use Mix to blend it in.'],
+    chorus: ['Chorus', 'Thickens the sound by layering slightly detuned copies, like many voices or strings.', 'Rate sets the wobble speed. Depth sets how wide it is.'],
+    vocal: ['Vocal enhancer', 'Lifts presence and air so voices sit forward and clear.', 'Presence brings the voice forward. Air adds shine at the top.'],
+    limiter: ['Limiter', 'Stops the level going above a set ceiling, so the mix cannot clip.', 'Set Threshold just below the loudest peaks. Gain makes the result louder.'],
+    feedback: ['Feedback killer', 'Cuts one narrow frequency where a mic or speaker squeals.', 'Drag Frequency onto the squeal. Raise Q to make the cut narrower.'],
+    phaser: ['Phaser', 'A swirling, watery sweep made by moving notches through the sound.', 'Rate sets the speed. Sweep sets how far it moves.'],
+    vibrato: ['Vibrato', 'Makes the pitch wobble gently, like a singer or violinist.', 'Rate sets how fast it wobbles. Depth sets how far.'],
+    gain: ['Gain', 'Makes the sound louder or quieter.', 'Drag Gain to the right to boost or to the left to cut.'],
+    filter: ['Filter', 'Lets only part of the sound through, cutting the highs or lows.', 'Cutoff sets where the filter starts. Resonance adds a peak at the cutoff.'],
+    tremolo: ['Tremolo', 'Pulses the volume up and down.', 'Rate sets the pulse speed. Depth sets how strong the pulse is.'],
+    autopan: ['Auto-pan', 'Moves the sound slowly from left to right and back.', 'Rate sets the speed. Depth sets how far it moves.'],
+    ringmod: ['Ring modulator', 'Mixes the sound with a tone to make metallic, robotic textures.', 'Freq sets the tone. Mix sets how much of the effect you hear.'],
+  };
+  // Instruments: what a row or menu choice is
+  function instrumentText(v, slot) {
+    if (slot) return ['Sample: ' + slot.name, 'Your own audio file, loaded into this row so it plays when its steps are hit.', 'Click Test to hear it. Use Sample to load a different file, or the × to remove it.'];
+    if (v.kind === 'synth') return ['Synth: ' + v.name, 'A synthesized instrument built from oscillators, a filter, and an envelope. Its notes come from the rack and the piano roll.', 'Click Edit to change its sound. Click Roll to write notes for it. Click Test to hear it.'];
+    if (v.kind === 'guitar') return ['Guitar: ' + v.name, 'A plucked-string instrument. Each note rings out and fades like a real string.', 'Click Roll to write notes. Use Pitch on the row to tune the whole part up or down.'];
+    if (v.kind) return ['Drum: ' + v.name, 'A percussion sound. Each step you turn on plays one hit of this drum.', 'Click the steps to place hits. Click Test to hear it alone. Click Roll for pitched notes.'];
+    return [v.name, 'An empty instrument row.', 'Pick a sound from the Add instrument menu.'];
+  }
+  function richInfo(el) {
+    const fx = el.closest('.fxcard');
+    if (fx) {
+      const name = fx.querySelector('strong') ? fx.querySelector('strong').textContent : '';
+      const type = Object.keys(FX_DEFS).find(k => FX_DEFS[k].name === name);
+      if (type && EFX[type]) return EFX[type];
+    }
+    if (el.matches && el.matches('select#fxAddSel, select#masterAddSel, select#cfxAddSel')) {
+      const type = el.value;
+      if (EFX[type]) return EFX[type];
+    }
+    const pc = el.closest('.presetCard');
+    if (pc && pc.dataset.name) {
+      const chain = (FX_PRESETS[pc.dataset.name] || []).map(x => typeof x === 'string' ? x : x.type).map(t => FX_DEFS[t] ? FX_DEFS[t].name : t).join(' > ');
+      return ['Preset: ' + pc.dataset.name.replace(/^Inspired by /, ''), 'A ready-made effects chain, in order: ' + chain + '.', 'Click to put this chain on the selected track. Then tweak any effect in the list.'];
+    }
+    const row = el.closest('.brow');
+    if (row && row.dataset.r !== undefined && VOICES[+row.dataset.r]) {
+      const r = +row.dataset.r;
+      return instrumentText(VOICES[r], curSlots()[r]);
+    }
+    if (el.id === 'instAll' && el.value) {
+      const [k, key] = [el.value.slice(0, 1), el.value.slice(2)];
+      if (k === 'p') return ['Synth preset: ' + key, 'A ready-made synth sound. Click Add instrument to add it as a new row in the rack.', 'Then click its Edit button to change how it sounds.'];
+      if (k === 'd') { const d = DRUMS[+key]; return [d ? 'Drum: ' + d.name : 'Drum', 'A percussion sound from the drum list.', 'Click Add instrument to add it to the rack, then place hits on its steps.']; }
+      if (k === 'g') { const g = GUITARS[+key]; return [g ? 'Guitar: ' + g.name : 'Guitar', 'A plucked-string sound from the guitar list.', 'Click Add instrument to add it to the rack, then click Roll to write notes.']; }
+    }
+    return null;
+  }
   function describe(el) {
+    const rich = richInfo(el);
+    if (rich) return rich;
     const t = el.closest('button, input, select, label, canvas, .clip, .step, .lane, .catHead, .brow, .bl, .nm, #arr, .numbox, .fxcard, .presetCard, .musicItem');
     if (!t) return ['Not a control', 'Click a button, slider, or track to learn what it does.'];
     if (t.id && EXPLAIN[t.id]) return EXPLAIN[t.id];
@@ -4443,8 +4553,10 @@ $('beat').addEventListener('click', e => {
     const label = (t.title || t.getAttribute('aria-label') || t.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60);
     return [label || 'Control', 'This control does something when you use it. Turn Beginner off to use it normally.'];
   }
-  function showAt(cx, cy, title, text) {
-    h.textContent = title; p.textContent = text;
+  function showAt(cx, cy, title, text, how) {
+    h.textContent = title;
+    p.style.whiteSpace = 'pre-line';
+    p.textContent = how ? text + '\n\nHow to use it: ' + how : text;
     pop.hidden = false;
     const w = Math.min(320, innerWidth - 24);
     pop.style.width = w + 'px';
@@ -4463,12 +4575,20 @@ $('beat').addEventListener('click', e => {
     document.body.classList.toggle('beginner', on);
     if (!on) hide();
   });
+  let lastHover = null;
+  document.addEventListener('mouseover', e => {
+    if (!on || e.target.closest('#beginnerBtn, #beginnerPop')) return;
+    if (e.target === lastHover) return;
+    lastHover = e.target;
+    const d = describe(e.target);
+    showAt(e.clientX, e.clientY, d[0], d[1], d[2] || detailFor(e.target));
+  }, true);
   document.addEventListener('click', e => {
     if (!on) return;
     if (e.target.closest('#beginnerBtn, #beginnerPop')) return;
     // Show the explanation, but let the click do its normal job
-    const [title, text] = describe(e.target);
-    showAt(e.clientX, e.clientY, title, text);
+    const d = describe(e.target);
+    showAt(e.clientX, e.clientY, d[0], d[1], d[2] || detailFor(e.target));
   }, true);
 })();
 </script>
