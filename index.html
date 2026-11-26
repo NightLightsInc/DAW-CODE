@@ -277,6 +277,9 @@ body{background:transparent!important}
 /* ===== Beginner mode popup ===== */
 .beginnerpop{position:fixed;z-index:200;max-width:320px;padding:14px 16px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--lamp);box-shadow:0 0 24px color-mix(in srgb,var(--lamp) 35%,transparent),var(--shadow)}
 .beginnerpop[hidden]{display:none}
+/* The box itself lets clicks through to the controls underneath; only its own buttons respond */
+.beginnerpop{pointer-events:none}
+.beginnerpop .bx,.beginnerpop .bgot{pointer-events:auto}
 .beginnerpop h3{margin:0 24px 6px 0;font-size:15px;color:#fff}
 .beginnerpop p{margin:0 0 10px;font-size:13px;line-height:1.45;color:var(--text)}
 .beginnerpop .bx{position:absolute;top:6px;right:8px;padding:0 6px;font-size:16px;line-height:18px}
@@ -4463,7 +4466,7 @@ $('beat').addEventListener('click', e => {
   document.addEventListener('click', e => {
     if (!on) return;
     if (e.target.closest('#beginnerBtn, #beginnerPop')) return;
-    e.preventDefault(); e.stopPropagation();
+    // Show the explanation, but let the click do its normal job
     const [title, text] = describe(e.target);
     showAt(e.clientX, e.clientY, title, text);
   }, true);
