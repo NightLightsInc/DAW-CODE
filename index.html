@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NightLights Inc. Studio DAW</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap">
 <style>
 :root{color-scheme:dark;--ink:#0d0716;--panel:#1a1027;--well:#120a1e;--line:#2e1f47;--beat:#4a2f73;--text:#f1e9ff;--dim:#9b8bb8;--lamp:#b26bff;--glow:#e05cff;--cyan:#d6a6ff;--red:#c2453f;--HDR:172px;--r:10px;--shadow:0 10px 30px rgba(0,0,0,.4)}
 *{box-sizing:border-box}
@@ -265,6 +266,10 @@ body{background:transparent!important}
 #starfield i{position:absolute;display:block;border-radius:50%;background:#fff;box-shadow:0 0 3px rgba(255,255,255,.9);opacity:0;animation:twinkle var(--d,4s) ease-in-out var(--dl,0s) infinite}
 @keyframes twinkle{0%,100%{opacity:0;transform:scale(.6)}50%{opacity:var(--o,.9);transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){#starfield i{animation:none;opacity:.6}}
+/* Only the single instrument menu shows; the old separate menus stay hidden so nothing refers to a missing element */
+#instSel,#drumSel,#guitarSel,#addInst,#addDrum,#addGuitar{display:none !important}
+#allInstSel{font:inherit;color:var(--text);background:var(--well);border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:12px;min-width:200px}
+.brand h1{font-family:'Permanent Marker','Rock Salt',cursive,sans-serif!important;font-size:26px!important;font-weight:400!important;letter-spacing:1px!important;transform:rotate(-2deg);text-shadow:0 0 10px color-mix(in srgb,var(--lamp) 40%,transparent)}
 .shell{display:contents}
 .side{position:relative;grid-column:1;grid-row:1 / span 2;min-height:0;height:100%;border-right:1px solid var(--line);padding:14px;overflow-y:auto;background:linear-gradient(180deg,#170e28,#110a1d)}
 .side.collapsed{display:none}
@@ -474,15 +479,8 @@ const HDR = 172;
 let px = 80, bpm = 96, sel = 0;
 let trackSet = new Set(), clipSet = new Set();
 
-const VOICES = [
-  {name:'Kick',  kind:'kick',  vol:.9,         pat:'x...x...x...x...'},
-  {name:'Snare', kind:'snare', vol:.7,         pat:'....x.......x...'},
-  {name:'Clap',  kind:'clap',  vol:.45,        pat:'.......x........'},
-  {name:'Hat',   kind:'hat',   vol:.4,         pat:'..x...x...x...x.'},
-  {name:'Bass',  kind:'bass',  vol:.6, f:55,   pat:'x..x..x.x..x..x.'},
-  {name:'Pluck', kind:'pluck', vol:.35, f:220, pat:'....x.......x...'}
-];
-const DEFAULT = VOICES.map(v => [...v.pat].map(c => c === 'x'));
+const VOICES = []; // instruments are added by the artist
+const DEFAULT = [];
 let grid = DEFAULT.map(r => [...r]);
 const bmuted = VOICES.map(() => false);
 const bvol = VOICES.map(v => v.vol);
@@ -490,7 +488,7 @@ const bvol = VOICES.map(v => v.vol);
 const COLORS = ['#b26bff', '#e05cff', '#d6a6ff', '#8f5bff', '#ff7ad9', '#c79bff'];
 let colorIdx = 0;
 const mkTrack = name => ({ name, color: COLORS[colorIdx++ % COLORS.length], vol: .8, mute: false, solo: false, clips: [] });
-let tracks = [mkTrack('Vocal'), mkTrack('Guitar')];
+let tracks = [mkTrack('Track 1')];
 const uid = () => Math.random().toString(36).slice(2, 9);
 
 let ctx = null, master = null, recDest = null, noiseBuf = null, micStream = null;
@@ -917,6 +915,7 @@ function buildBeat() {
     box.append(row);
   });
   refreshBeat();
+  if (!VOICES.length) { const p1 = document.createElement('p'); p1.className = 'fxempty'; p1.textContent = 'No instruments yet. Pick a drum or guitar from the menus above the rack and click Drums or Guitars, or Add instrument, to start.'; box.append(p1); }
 }
 function slider(key, r, min, max, step, val, label) {
   const i = document.createElement('input');
@@ -1155,7 +1154,7 @@ function addInstrument(name) {
   grid.push(Array(16).fill(false));
   bmuted.push(false); bvol.push(.8); bpitch.push(0); bpan.push(0);
   kits.forEach(k => k.slots.push(null));
-  editSel = VOICES.length - 1;
+
 }
 function renderInstSel() {
   const s = $('instSel'); s.innerHTML = '';
@@ -1275,7 +1274,7 @@ function drawMidi(c, cv, color) {
 // ---------- Piano roll ----------
 const ROLL_LO = 36, ROLL_HI = 72, ROW_H = 14, CELL = 16, KEY_W = 44;
 let rollDrag = null;
-let rollChan = 0;
+let rollChan = null;
 function rollClipNow() {
   const c = selClip ? findClip(selClip) : null;
   if (c && c.midi) return c;
@@ -2353,6 +2352,27 @@ PRESET_FAMILIES.forEach(([family, chains]) => {
     });
   });
 });
+// Named starting points. They're chains to start from, not copies of anyone's recordings.
+Object.assign(FX_PRESETS, {
+  'Inspired by Kanye West': [{ type: 'eq', p: { low: 3, high: 2 } }, { type: 'sat', p: { drive: .4 } }, 'comp', 'limiter'],
+  'Inspired by Drake': [{ type: 'eq', p: { high: 2 } }, 'comp', { type: 'reverb', p: { decay: 2, mix: .3 } }, { type: 'echo', p: { time: .3, mix: .25 } }],
+  'Inspired by Travis Scott': [{ type: 'dist', p: { drive: .35, mix: .5 } }, { type: 'filter', p: { freq: 1500 } }, { type: 'reverb', p: { mix: .25 } }, 'limiter'],
+  'Inspired by Billie Eilish': ['eq', 'vocal', 'comp', { type: 'reverb', p: { decay: 1.2, mix: .3 } }],
+  'GOON G (clean)': [{ type: 'gate', p: { thr: .03 } }, { type: 'eq', p: { low: -4, mid: 1, high: 2 } }, { type: 'deess', p: { freq: 6000 } }, 'comp', { type: 'reverb', p: { decay: 1, mix: .12 } }, { type: 'limiter', p: { thr: -1 } }]
+});
+
+// 100 more named starting points, one per artist. They are chains to start from, not copies of anyone's recordings.
+const ARTIST_PRESET_NAMES = ["Michael Jackson", "Beyoncé", "Taylor Swift", "Eminem", "Rihanna", "Adele", "Ed Sheeran", "Bruno Mars", "Lady Gaga", "Kendrick Lamar", "J. Cole", "Nicki Minaj", "Post Malone", "The Weeknd", "Ariana Grande", "Justin Bieber", "Dua Lipa", "Harry Styles", "Bad Bunny", "Shakira", "Madonna", "Prince", "Whitney Houston", "Mariah Carey", "Stevie Wonder", "Aretha Franklin", "Marvin Gaye", "Ray Charles", "Frank Sinatra", "Elvis Presley", "The Beatles", "Elton John", "Queen", "David Bowie", "Led Zeppelin", "Pink Floyd", "The Rolling Stones", "Jimi Hendrix", "Bob Dylan", "Johnny Cash", "Dolly Parton", "Willie Nelson", "Eric Clapton", "Stevie Ray Vaughan", "B.B. King", "Muddy Waters", "Nirvana", "Radiohead", "Coldplay", "U2", "Oasis", "Blur", "Arctic Monkeys", "The Strokes", "Red Hot Chili Peppers", "Foo Fighters", "Metallica", "Guns N' Roses", "AC/DC", "Green Day", "Linkin Park", "Daft Punk", "Kraftwerk", "Depeche Mode", "The Cure", "The Smiths", "Joy Division", "New Order", "Massive Attack", "Portishead", "Björk", "Sigur Rós", "Florence + the Machine", "Lorde", "Tame Impala", "Frank Ocean", "SZA", "Erykah Badu", "D'Angelo", "Lauryn Hill", "Missy Elliott", "Timbaland", "Pharrell Williams", "OutKast", "Nas", "JAY-Z", "Tupac Shakur", "The Notorious B.I.G.", "Snoop Dogg", "Dr. Dre", "Ice Cube", "50 Cent", "Lil Wayne", "Future", "Migos", "Cardi B", "Megan Thee Stallion", "Doja Cat", "Tyler, The Creator", "Childish Gambino"];
+const ARTIST_PRESET_TEMPLATES = [
+  ['eq', 'comp', 'reverb'], ['vocal', 'comp', 'echo'], ['eq', 'sat', 'comp', 'limiter'],
+  ['eq', 'deess', 'comp', 'chorus', 'reverb'], ['dist', 'filter', 'reverb', 'limiter'], ['gate', 'eq', 'comp', 'pingpong', 'limiter']
+];
+ARTIST_PRESET_NAMES.forEach((name, i) => {
+  const off = ((i % 5) - 2) * 2; // small tonal difference between neighbouring presets
+  FX_PRESETS['Inspired by ' + name] = ARTIST_PRESET_TEMPLATES[i % ARTIST_PRESET_TEMPLATES.length]
+    .map(t => t === 'eq' ? { type: 'eq', p: { high: off } } : t);
+});
+
 // Turns a preset (names only, or names with settings) into a full effects chain
 function chainOf(entry) {
   return entry.map(x => typeof x === 'string'
@@ -3274,6 +3294,7 @@ function renderChanFx() {
   const box = $('chanFx'); if (!box) return;
   box.innerHTML = '';
   if (!VOICES[chSel]) chSel = 0;
+  if (!VOICES.length) { const p0 = document.createElement('p'); p0.className = 'fxempty'; p0.textContent = 'Add an instrument first. Its effects will appear here.'; box.append(p0); return; }
   const v = VOICES[chSel]; v.fx = v.fx || [];
   const head = document.createElement('div'); head.className = 'fxhead';
   const cs = document.createElement('select'); cs.id = 'cfxChSel'; cs.setAttribute('aria-label', 'Channel');
@@ -3309,6 +3330,7 @@ function renderChanFx() {
   cf.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const v = VOICES[chSel], act = b.dataset.act;
+    if (!v) return;
     if (act === 'cfxadd') { const type = $('cfxAddSel').value; v.fx.push({ type, p: { ...FX_DEFS[type].p } }); }
     else {
       const i = +b.dataset.i;
@@ -4194,6 +4216,40 @@ document.querySelectorAll('input[type=range]').forEach(makeKnob);
     field.append(st);
   }
   document.body.append(field);
+})();
+// ---------- One instrument menu for synths, drums and guitars ----------
+(function singleInstrumentMenu() {
+  const sel = document.createElement('select');
+  sel.id = 'allInstSel'; sel.setAttribute('aria-label', 'Instrument');
+  const btn = mkBtn('Add instrument', 'addAnyInst', false);
+  btn.id = 'addAnyInst';
+  // The old separate menus stay in the page but are hidden, so nothing refers to a missing element
+  ['instSel', 'drumSel', 'addInst', 'addDrum', 'guitarSel', 'addGuitar'].forEach(id => { const el = $(id); if (el) el.hidden = true; });
+  $('instSel').before(sel, btn);
+  function fill() {
+    sel.innerHTML = '';
+    const group = (label, items) => {
+      const og = document.createElement('optgroup'); og.label = label;
+      items.forEach(([text, value]) => og.append(new Option(text, value)));
+      if (items.length) sel.append(og);
+    };
+    group('Synths', Object.keys(PRESETS).map(n => [n, 'p:' + n]));
+    group('Drums', DRUMS.map((d, i) => [d.name, 'd:' + i]));
+    group('Guitars', GUITARS.map((g, i) => [g.name, 'g:' + i]));
+  }
+  window.renderAllInst = fill;
+  fill();
+  btn.addEventListener('click', () => {
+    const v = sel.value; if (!v) return;
+    const [kind, key] = [v.slice(0, 1), v.slice(2)];
+    if (kind === 'p') addInstrument(key);
+    if (kind === 'd') addDrum(+key);
+    if (kind === 'g') addGuitar(+key);
+    buildBeat();
+  });
+  // Keep the single menu in step when synth presets change
+  const prev = renderInstSel;
+  renderInstSel = function () { prev(); fill(); };
 })();
 </script>
 </body>
