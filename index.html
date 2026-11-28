@@ -131,8 +131,29 @@ kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;font:inherit;co
 .lyricpopta{resize:none}
 .lyricpopta[hidden],.lyricpoptele[hidden]{display:none}
 .lyricpoptele{overflow-y:auto;font-size:20px;line-height:1.6;white-space:pre-wrap}
+.lyricpoptele.glowing{animation:nlWordGlow 1.8s ease-in-out infinite}
+@keyframes nlWordGlow{0%,100%{color:#ffffff;text-shadow:0 0 4px #c8a4ff,0 0 10px #7fd3ff}50%{color:#f5e9ff;text-shadow:0 0 12px #ff8ad8,0 0 22px #c8a4ff}}
+@media (prefers-reduced-motion: reduce){.lyricpoptele.glowing{animation:none;text-shadow:0 0 8px #c8a4ff}}
 .lyricpopbar{display:flex;gap:8px;align-items:center}
 .lyricpopbar input{flex:1}
+.kitgrid{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.kitgrid .ctl{width:100%}
+.kitgrid button{font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--well,#120a1e);color:var(--text);cursor:pointer}
+.kitgrid button[aria-pressed="true"]{outline:2px solid #c8a4ff}
+.ctxmenu{position:fixed;z-index:8700;min-width:230px;display:flex;flex-direction:column;gap:2px;padding:6px;background:rgba(14,8,26,.98);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.55);color:var(--text);font-size:13px}
+.ctxmenu[hidden]{display:none}
+.ctxitem{text-align:left;background:none;border:0;color:var(--text);padding:6px 8px;border-radius:6px;cursor:pointer}
+.ctxitem:hover{background:rgba(200,164,255,.15)}
+.ctxrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px}
+.ctxrow input[type=number]{width:70px}
+.ctxrow input[type=range]{width:110px}
+.ctxval{min-width:40px;text-align:right}
+.numwrap{display:inline-flex;align-items:center;gap:2px;vertical-align:middle;white-space:nowrap}
+.numwrap .numbox{margin-left:0}
+.numwrap .numunit{margin:0}
+.nlerrtoast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9000;max-width:min(520px,92vw);background:rgba(40,8,16,.97);border:1px solid #ff6b8a;border-radius:12px;padding:10px 14px;color:#fff;font-size:13px;line-height:1.4;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.nlerrtoast[hidden]{display:none}
+.nlerrrow{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
 .eqfull{position:fixed;inset:0;z-index:9000;background:rgba(8,4,16,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;box-sizing:border-box}
 .eqfullbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
 #eqFullCv{width:min(96vw,1200px);height:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px;touch-action:none;cursor:crosshair;background:#120a1e}
@@ -350,9 +371,9 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
 <body>
 <header>
   <div class="filetools">
-    <label class="btn" for="file">Import audio</label><input id="file" type="file" accept="audio/*">
+    <label class="btn" for="file">Import audio</label><input id="file" type="file" multiple accept="audio/*,video/*,.wav,.mp3,.ogg,.oga,.opus,.flac,.m4a,.aac,.aif,.aiff,.caf,.webm,.mp4,.mov,.mka,.wma">
     <button id="export" aria-pressed="false">Export mix</button>
-    <div id="exportMenu" class="exportMenu" hidden><button data-fmt="wav">WAV</button><button data-fmt="mp3">MP3</button><button data-fmt="mp4">MP4</button></div>
+    <div id="exportMenu" class="exportMenu" hidden><button data-fmt="wav">WAV</button><button data-fmt="mp3">MP3</button><button data-fmt="flac">FLAC</button><button data-fmt="aiff">AIFF</button><button data-fmt="mp4">MP4</button></div>
     <button id="saveTrack">Save project (.zip)</button>
     <button id="fsBtn" aria-pressed="false">Full screen</button>
   </div>
@@ -364,7 +385,6 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
     <button id="sideToggle" aria-expanded="true">Hide folders</button>
     <button id="play" aria-pressed="false">Play</button>
     <button id="pause">Pause</button>
-    <button id="stop">Stop</button>
     <button id="rewind">Rewind</button>
     <button id="metro" aria-pressed="false">Metronome</button>
     <span class="latWrap">
@@ -433,7 +453,7 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
       <option value="4">Bar</option><option value="2">1/2</option><option value="1" selected>1/4</option>
       <option value="0.5">1/8</option><option value="0.25">1/16</option><option value="0.125">1/32</option>
     </select></label>
-    <button id="splitBtn">Split at playhead</button>
+    <button id="splitBtn">Split</button>
     <button id="dupTrack">Duplicate</button>
     <label class="ctl">Fade in <input id="fadeIn" type="number" min="0" max="30" step="0.1" value="0"> s</label>
     <label class="ctl">Fade out <input id="fadeOut" type="number" min="0" max="30" step="0.1" value="0"> s</label>
@@ -451,7 +471,6 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
     <button id="selAll">Select all tracks</button>
     <span id="selCount" class="ctl"></span>
     <button id="delSel">Delete</button>
-    <button id="delTrack">Delete track</button>
     <label class="ctl"><input id="ripple" type="checkbox"> Ripple</label>
     <span class="atpanel">
       <strong>Auto-tune</strong>
@@ -468,7 +487,7 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
       <label class="ctl">Keep vibrato <input id="atVib" type="range" min="0" max="100" value="0"> %</label>
       <label class="ctl">Dry/Wet <input id="atMix" type="range" min="0" max="100" value="100"> %</label>
       <label class="ctl">Output <input id="atGain" type="range" min="-12" max="12" step="0.5" value="0"> dB</label>
-      <button id="atBtn">Auto-tune take</button>
+      <button id="atBtn">Set autotune</button>
     </span>
   </div>
   <div class="arr" id="arr">
@@ -505,10 +524,10 @@ main{grid-column:2;grid-row:2;min-width:0;min-height:0;overflow:auto;display:fle
       <div class="bname"><strong id="rollName">Piano roll</strong><span class="dim">Click to add or remove notes. Drag a note's right edge to change its length.</span></div>
       <div class="rollWrap"><canvas id="roll"></canvas><canvas id="rollVel"></canvas><canvas id="rollBend"></canvas></div>
     </section>
-    <input id="kitFiles" type="file" accept="audio/*" multiple hidden>
-    <input id="voiceFile" type="file" accept="audio/*" hidden>
+    <input id="kitFiles" type="file" accept="audio/*,video/*,.wav,.mp3,.ogg,.oga,.opus,.flac,.m4a,.aac,.aif,.aiff,.caf,.webm,.mp4,.mov,.mka,.wma" multiple hidden>
+    <input id="voiceFile" type="file" accept="audio/*,video/*,.wav,.mp3,.ogg,.oga,.opus,.flac,.m4a,.aac,.aif,.aiff,.caf,.webm,.mp4,.mov,.mka,.wma" hidden>
     <input id="kitJson" type="file" accept=".zip,.json,application/zip,application/json" hidden>
-    <input id="kitFolder" type="file" accept="audio/*" webkitdirectory multiple hidden>
+    <input id="kitFolder" type="file" accept="audio/*,video/*,.wav,.mp3,.ogg,.oga,.opus,.flac,.m4a,.aac,.aif,.aiff,.caf,.webm,.mp4,.mov,.mka,.wma" webkitdirectory multiple hidden>
     <input id="presetJson" type="file" accept=".json,application/json" hidden>
     <div class="bar">
       <button id="clear">Clear beat</button>
@@ -563,7 +582,7 @@ function init() {
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
-  if (outDevId && ctx.setSinkId) ctx.setSinkId(outDevId).catch(() => {});
+  if (outDevId && ctx.setSinkId) ctx.setSinkId(outDevId).catch(err => nlReportError('NL-052', outDevId, err));
   if (ctx.state === 'suspended') ctx.resume();
 }
 
@@ -755,7 +774,7 @@ function scheduleClips(from, when) {
     tr.clips.forEach(c => {
       if (!c.buf || c.start + c.dur <= from) return;
       const s = ctx.createBufferSource(); s.buffer = c.buf;
-      const g = ctx.createGain(); g.gain.value = tr.vol;
+      const g = ctx.createGain(); g.gain.value = tr.vol * (c.vol ?? 1);
       const rate = Math.pow(2, (c.pitch || 0) / 12), into = Math.max(0, from - c.start);
       s.playbackRate.value = rate;
       const t0 = when + Math.max(0, c.start - from);
@@ -989,6 +1008,91 @@ function slider(key, r, min, max, step, val, label) {
 let kits = [{ name: 'Built-in', builtin: true, slots: VOICES.map(() => null) }];
 let kitIdx = 0, voiceTarget = 0;
 const curSlots = () => kits[kitIdx].slots;
+// 50 built-in kits: each sets the sounds of the first eight channels to a set of drums, and keeps your patterns
+const BUILTIN_KITS = [
+  ["808 Hip Hop", ["Kick (808)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Shaker", "Cowbell", "Tom (low)"]],
+  ["909 House", ["Kick (909)", "Snare (brush)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Tambourine", "Shaker", "Tom (high)"]],
+  ["Deep House", ["Kick (deep)", "Snare (brush)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Maracas", "Shaker", "Tom (low)"]],
+  ["Techno Warehouse", ["Kick (909)", "Snare (military)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Ride bell", "Industrial hit", "Tom (low)"]],
+  ["Trap Heavy", ["Kick (808)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Cowbell", "Industrial hit", "Tom (low)"]],
+  ["Boom Bap", ["Kick (punchy)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Shaker", "Tambourine", "Tom (low)"]],
+  ["Lo-fi Dusty", ["Kick (lo-fi)", "Snare (brush)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Shaker", "Woodblock", "Tom (low)"]],
+  ["Drill", ["Kick (sub)", "Snare (military)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Industrial hit", "Cowbell", "Tom (low)"]],
+  ["Dubstep", ["Kick (deep)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Crash", "Industrial hit", "Tom (low)"]],
+  ["Drum & Bass", ["Kick (punchy)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Ride bell", "Shaker", "Tom (high)"]],
+  ["Phonk", ["Kick (808)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Cowbell", "Industrial hit", "Tom (low)"]],
+  ["Funk Groove", ["Kick (punchy)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Cowbell", "Tambourine", "Tom (high)"]],
+  ["Disco", ["Kick (909)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Tambourine", "Cowbell", "Tom (high)"]],
+  ["Afrobeat", ["Kick (deep)", "Rim shot", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Agogo bell", "Shaker", "Conga (open)"]],
+  ["Latin Salsa", ["Kick (punchy)", "Rim shot", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Claves", "Cowbell", "Conga (open)"]],
+  ["Dembow", ["Kick (deep)", "Rim shot", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Maracas", "Cowbell", "Conga (slap)"]],
+  ["Samba", ["Kick (deep)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Tambourine", "Agogo bell", "Dhol"]],
+  ["Bossa Nova", ["Kick (sub)", "Rim shot", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Claves", "Shaker", "Tabla (dayan)"]],
+  ["Reggae", ["Kick (deep)", "Rim shot", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Woodblock", "Shaker", "Tom (low)"]],
+  ["Ska Upbeat", ["Kick (punchy)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Woodblock", "Cowbell", "Tom (high)"]],
+  ["Rock Straight", ["Kick (punchy)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Crash", "Ride bell", "Tom (low)"]],
+  ["Rock Heavy", ["Kick (808)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Crash", "Splash", "Tom (low)"]],
+  ["Metal", ["Kick (punchy)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Crash", "Splash", "Tom (low)"]],
+  ["Punk", ["Kick (punchy)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Crash", "Cowbell", "Tom (high)"]],
+  ["Jazz Brush", ["Kick (sub)", "Snare (brush)", "Clap", "Hi-hat (closed)", "Ride bell", "Ride bell", "Shaker", "Tom (low)"]],
+  ["Swing Ride", ["Kick (sub)", "Snare (brush)", "Clap", "Hi-hat (closed)", "Ride bell", "Tambourine", "Woodblock", "Tom (low)"]],
+  ["Gospel Stomp", ["Kick (punchy)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Tambourine", "Cowbell", "Tom (high)"]],
+  ["Orchestral Hit", ["Kick (sub)", "Timpani", "Clap", "Crash", "Gong", "Triangle", "Tambourine", "Tom (low)"]],
+  ["Cinematic Epic", ["Kick (deep)", "Taiko", "Clap", "Crash", "Gong", "Industrial hit", "Splash", "Timpani"]],
+  ["Taiko Ensemble", ["Kick (deep)", "Taiko", "Odaiko (great drum)", "Taiko", "Gong", "Woodblock", "Agogo bell", "Timpani"]],
+  ["African Djembe", ["Djembe (bass)", "Djembe (tone)", "Djembe (tone)", "Djembe (bass)", "Shaker", "Agogo bell", "Claves", "Conga (open)"]],
+  ["Indian Tabla", ["Tabla (bayan)", "Tabla (dayan)", "Tabla (dayan)", "Tabla (bayan)", "Tambourine", "Frame drum", "Shaker", "Tabla (dayan)"]],
+  ["Middle Eastern", ["Doumbek (bass)", "Darbuka", "Darbuka", "Doumbek (bass)", "Frame drum", "Tambourine", "Claves", "Darbuka"]],
+  ["Brazilian Samba", ["Dhol", "Snare (rock)", "Clap", "Tambourine", "Agogo bell", "Shaker", "Cowbell", "Conga (slap)"]],
+  ["Caribbean Steel", ["Kick (punchy)", "Rim shot", "Steel pan", "Steel pan", "Hang drum", "Maracas", "Claves", "Conga (muted)"]],
+  ["Hang & Chimes", ["Kick (sub)", "Hang drum", "Gong", "Triangle", "Hang drum", "Woodblock", "Shaker", "Agogo bell"]],
+  ["Percussion Ensemble", ["Kick (deep)", "Conga (open)", "Bongo (high)", "Bongo (low)", "Caj\u00f3n (snap)", "Claves", "Shaker", "Cowbell"]],
+  ["Caj\u00f3n Acoustic", ["Caj\u00f3n (bass)", "Caj\u00f3n (snap)", "Caj\u00f3n (snap)", "Caj\u00f3n (bass)", "Shaker", "Tambourine", "Claves", "Cowbell"]],
+  ["Bongo Latin", ["Kick (punchy)", "Rim shot", "Bongo (high)", "Bongo (low)", "Conga (slap)", "Claves", "Cowbell", "Maracas"]],
+  ["Retro 808 Electro", ["Kick (808)", "Clap", "Snare (military)", "Hi-hat (closed)", "Hi-hat (open)", "Cowbell", "Tom (high)", "Tom (low)"]],
+  ["Synthwave", ["Kick (909)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Crash", "Ride bell", "Tom (high)"]],
+  ["Glitch IDM", ["Kick (lo-fi)", "Snare (brush)", "Clap", "Hi-hat (closed)", "Industrial hit", "Woodblock", "Splash", "Tom (high)"]],
+  ["Minimal Tech", ["Kick (909)", "Rim shot", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Claves", "Woodblock", "Tom (low)"]],
+  ["Hard Trance", ["Kick (909)", "Snare (rock)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Crash", "Ride bell", "Tom (high)"]],
+  ["Garage 2-step", ["Kick (deep)", "Snare (brush)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Shaker", "Tambourine", "Tom (low)"]],
+  ["Reggaeton Dembow", ["Kick (808)", "Rim shot", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Conga (slap)", "Bongo (high)", "Tom (low)"]],
+  ["Trip-hop", ["Kick (lo-fi)", "Snare (brush)", "Clap", "Hi-hat (closed)", "Shaker", "Industrial hit", "Woodblock", "Tom (low)"]],
+  ["Chill Lofi Beats", ["Kick (lo-fi)", "Snare (brush)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Shaker", "Woodblock", "Frame drum"]],
+  ["Arcade 8-bit", ["Kick (808)", "Snare (military)", "Clap", "Hi-hat (closed)", "Hi-hat (open)", "Woodblock", "Cowbell", "Triangle"]],
+  ["Experimental Industrial", ["Kick (sub)", "Industrial hit", "Industrial hit", "Hi-hat (closed)", "Splash", "Gong", "Crash", "Tom (low)"]]
+];
+kits.push(...BUILTIN_KITS.map(([name, drums]) => ({ name, builtin: true, preset: drums, slots: VOICES.map(() => null) })));
+// Chooses a kit (from the menu or a button) and loads its sounds
+function selectKit(i) {
+  kitIdx = i; kitMsg('');
+  const k = kits[i];
+  if (k && k.preset) {
+    k.preset.forEach((dn, r) => {
+      const di = DRUMS.findIndex(d => d.name === dn);
+      if (di < 0) return;
+      if (r >= VOICES.length) { addDrum(di); return; }
+      const d = DRUMS[di];
+      VOICES[r].name = d.name; VOICES[r].kind = d.kind; VOICES[r].f = d.f || 0; VOICES[r].dp = d.dp; delete VOICES[r].patch;
+    });
+    kitMsg(k.name + ' kit loaded');
+  }
+  buildBeat();
+}
+// A grid of the built-in kits in the Beat making folder, one click each
+(function builtinKitGrid() {
+  const fb = $('fBeat'); if (!fb) return;
+  const wrap = document.createElement('div'); wrap.id = 'kitGrid'; wrap.className = 'kitgrid';
+  const h = document.createElement('div'); h.className = 'ctl'; h.textContent = 'Built-in kits: click one to load its sounds';
+  wrap.append(h);
+  kits.forEach((k, i) => {
+    if (!k.preset) return;
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = k.name; b.dataset.kit = i;
+    b.addEventListener('click', () => { selectKit(i); refreshKit(); document.querySelectorAll('#kitGrid button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
+    wrap.append(b);
+  });
+  fb.prepend(wrap);
+})();
 const kitMsg = msg => { $('kitMsg').textContent = msg; };
 
 function refreshKit() {
@@ -1009,9 +1113,9 @@ async function loadSampleInto(r, f) {
   init(); ensureEditable();
   const slots = curSlots();
   try {
-    slots[r] = { name: f.name, root: midiFreq(60), buf: await ctx.decodeAudioData(await f.arrayBuffer()) };
+    slots[r] = { name: f.name, root: midiFreq(60), buf: await decodeFile(f) };
     kitMsg('');
-  } catch (err) { kitMsg(`Could not read ${f.name}`); }
+  } catch (err) { nlReportError('NL-031', f.name, err); kitMsg(`Could not read ${f.name}`); }
   buildBeat();
 }
 function loadMany(files, r0) {
@@ -1117,7 +1221,7 @@ async function addKitFromFiles(files, label) {
   let failed = 0;
   for (const f of audio) {
     let buf;
-    try { buf = await ctx.decodeAudioData(await f.arrayBuffer()); } catch (err) { failed++; continue; }
+    try { buf = await decodeFile(f); } catch (err) { failed++; continue; }
     const hit = VOICES.findIndex((v, i) => !kit.slots[i] && HINTS[v.name.toLowerCase()] && HINTS[v.name.toLowerCase()].test(f.name));
     let r = hit >= 0 ? hit : VOICES.findIndex((_, i) => !kit.slots[i]);
     if (r < 0) { addChannel(); r = VOICES.length - 1; }
@@ -1640,7 +1744,26 @@ const FX_DEFS = {
   filter: { name: 'Filter', p: { freq: 2000, q: 1 }, r: { freq: [40, 16000, 10], q: [.1, 20, .1] } },
   tremolo: { name: 'Tremolo', p: { rate: 4, tdepth: .6 }, r: { rate: [.1, 20, .1], tdepth: [0, 1, .01] } },
   autopan: { name: 'Auto-pan', p: { rate: .5, adepth: .8 }, r: { rate: [.05, 8, .01], adepth: [0, 1, .01] } },
-  ringmod: { name: 'Ring modulator', p: { freq: 300, mix: .5 }, r: { freq: [20, 2000, 1], mix: [0, 1, .01] } }
+  ringmod: { name: 'Ring modulator', p: { freq: 300, mix: .5 }, r: { freq: [20, 2000, 1], mix: [0, 1, .01] } },
+  highpass: { name: 'High-pass filter', p: { freq: 300, q: .7 }, r: { freq: [20, 8000, 10], q: [.2, 12, .05] } },
+  bandpass: { name: 'Band-pass filter', p: { freq: 1000, q: 1 }, r: { freq: [100, 8000, 10], q: [.2, 12, .05] } },
+  notch: { name: 'Notch filter', p: { freq: 1000, q: 4 }, r: { freq: [100, 8000, 10], q: [.2, 12, .05] } },
+  allpass: { name: 'All-pass filter', p: { freq: 1000, q: .7 }, r: { freq: [100, 8000, 10], q: [.2, 12, .05] } },
+  widen: { name: 'Stereo widener', p: { width: 1.4 }, r: { width: [0, 2, .01] } },
+  comb: { name: 'Comb filter', p: { time: .008, fb: .7, mix: .6 }, r: { time: [.001, .05, .0005], fb: [0, .95, .01], mix: [0, 1, .01] } },
+  hardclip: { name: 'Hard clipper', p: { thr: .4, gain: 0 }, r: { thr: [.05, 1, .01], gain: [-12, 12, .5] } },
+  fold: { name: 'Wavefolder', p: { drive: 2, mix: 1 }, r: { drive: [1, 8, .05], mix: [0, 1, .01] } },
+  tube: { name: 'Tube saturation', p: { drive: .4, mix: .7 }, r: { drive: [0, 1, .01], mix: [0, 1, .01] } },
+  overdrive: { name: 'Overdrive', p: { drive: .5, tone: 3000, gain: -6 }, r: { drive: [0, 1, .01], tone: [400, 12000, 50], gain: [-24, 6, .5] } },
+  rotary: { name: 'Rotary speaker', p: { rate: 5, depth: .5 }, r: { rate: [.2, 10, .1], depth: [0, 1, .01] } },
+  tapeecho: { name: 'Tape echo', p: { time: .3, fb: .4, tone: 3000, wow: .5, mix: .4 }, r: { time: [.05, 1.5, .01], fb: [0, .9, .01], tone: [500, 8000, 50], wow: [0, 1, .01], mix: [0, 1, .01] } },
+  vinyl: { name: 'Vinyl and tape hiss', p: { crackle: .3, hiss: .2 }, r: { crackle: [0, 1, .01], hiss: [0, 1, .01] } },
+  lofi: { name: 'Lo-fi', p: { bits: 8, cut: 4000 }, r: { bits: [3, 16, 1], cut: [500, 12000, 50] } },
+  telephone: { name: 'Telephone', p: { low: 300, high: 3400 }, r: { low: [100, 1000, 10], high: [1500, 6000, 50] } },
+  autowah: { name: 'Auto-wah', p: { freq: 600, q: 5, rate: 2, sweep: 800 }, r: { freq: [200, 3000, 10], q: [.5, 15, .1], rate: [.1, 10, .1], sweep: [0, 3000, 10] } },
+  bassenh: { name: 'Bass enhancer', p: { amount: .5 }, r: { amount: [0, 2, .01] } },
+  haas: { name: 'Haas widener', p: { ms: 18 }, r: { ms: [1, 40, .5] } },
+  air: { name: 'Air boost', p: { gain: 4 }, r: { gain: [-12, 12, .5] } }
 };
 const FX_LABELS = { tdepth: 'Depth', adepth: 'Depth', bits: 'Bit depth', presence: 'Presence (dB)', air: 'Air (dB)', sweep: 'Sweep (Hz)', cut: 'Cut (dB)', q: 'Q', gain: 'Gain (dB)', rate: 'Rate (Hz)', depth: 'Depth (s)', post: 'Post gain', tone: 'Tone (Hz)', low: 'Low (dB)', mid: 'Mid (dB)', midF: 'Mid freq (Hz)', midQ: 'Mid Q', high: 'High (dB)', thr: 'Threshold', ratio: 'Ratio', att: 'Attack (s)', rel: 'Release (s)', freq: 'Frequency (Hz)', drive: 'Drive', mix: 'Mix', time: 'Delay time (s)', fb: 'Feedback', decay: 'Decay (s)' };
 function distCurve(d) { const n = 2048, c = new Float32Array(n), k = 1 + d * 60; for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * k) / Math.tanh(k); } return c; }
@@ -1673,6 +1796,14 @@ function impulse(d) {
   }
   return buf;
 }
+function hardCurve(t) { const n = 2048, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.max(-t, Math.min(t, x)); } return c; }
+function foldCurve(k) { const n = 2048, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.sin(x * k * Math.PI / 2); } return c; }
+function tubeCurve(d) { const n = 2048, c = new Float32Array(n), k = 1 + d * 6, b = 0.25, z = Math.tanh(b); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = (Math.tanh(x * k + b) - z) / (Math.tanh(k + b) - z); } return c; }
+function noiseBuffer(kind) {
+  const len = ctx.sampleRate * 3, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = kind === 'hiss' ? (Math.random() * 2 - 1) * 0.05 : (Math.random() < 0.0006 ? (Math.random() * 2 - 1) * 0.7 : 0);
+  return buf;
+}
 function applyFx(fx, p) {
   const n = fx.n;
   switch (fx.type) {
@@ -1695,6 +1826,22 @@ function applyFx(fx, p) {
     case 'tremolo': n.lfo.frequency.value = p.rate; n.lg.gain.value = p.tdepth * 0.5; n.g.gain.value = 1 - p.tdepth * 0.5; break;
     case 'autopan': n.lfo.frequency.value = p.rate; n.lg.gain.value = p.adepth; break;
     case 'ringmod': n.o.frequency.value = p.freq; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix; break;
+    case 'highpass': case 'bandpass': case 'notch': case 'allpass': n.f.frequency.value = p.freq; n.f.Q.value = p.q; break;
+    case 'widen': { const a = 0.5 + 0.5 * p.width, b = 0.5 - 0.5 * p.width; n.a0.gain.value = a; n.a1.gain.value = a; n.x0.gain.value = b; n.x1.gain.value = b; break; }
+    case 'comb': n.dl.delayTime.value = p.time; n.fb.gain.value = p.fb; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix; break;
+    case 'hardclip': if (n.thr !== p.thr) { n.thr = p.thr; n.ws.curve = hardCurve(p.thr); } n.post.gain.value = Math.pow(10, p.gain / 20); break;
+    case 'fold': if (n.drive !== p.drive) { n.drive = p.drive; n.ws.curve = foldCurve(p.drive); } n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix; break;
+    case 'tube': if (n.drive !== p.drive) { n.drive = p.drive; n.ws.curve = tubeCurve(p.drive); } n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix; break;
+    case 'overdrive': if (n.drive !== p.drive) { n.drive = p.drive; n.ws.curve = distCurve(p.drive); } n.tone.frequency.value = p.tone; n.post.gain.value = Math.pow(10, p.gain / 20); break;
+    case 'rotary': n.lfo.frequency.value = p.rate; n.lfo2.frequency.value = p.rate * 1.3; n.lg.gain.value = p.depth * 0.5; n.g.gain.value = 1 - p.depth * 0.5; n.lg2.gain.value = p.depth * 0.003; break;
+    case 'tapeecho': n.dl.delayTime.value = p.time; n.fb.gain.value = p.fb; n.lp.frequency.value = p.tone; n.lfo.frequency.value = 0.6; n.lg.gain.value = p.wow * 0.002; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix * 0.5; break;
+    case 'vinyl': n.hg.gain.value = p.hiss * 0.2; n.cg.gain.value = p.crackle; break;
+    case 'lofi': if (n.bits !== Math.round(p.bits)) { n.bits = Math.round(p.bits); n.ws.curve = bitCurve(n.bits); } n.lp.frequency.value = p.cut; break;
+    case 'telephone': n.hp.frequency.value = p.low; n.lp.frequency.value = p.high; break;
+    case 'autowah': n.f.frequency.value = p.freq; n.f.Q.value = p.q; n.lfo.frequency.value = p.rate; n.lg.gain.value = p.sweep; break;
+    case 'bassenh': n.lo.frequency.value = 120; n.post.gain.value = p.amount; n.wet.gain.value = 1; n.dry.gain.value = 1; break;
+    case 'haas': n.dl.delayTime.value = p.ms / 1000; break;
+    case 'air': n.hs.gain.value = p.gain; break;
     case 'sat': if (n.drive !== p.drive) { n.drive = p.drive; n.ws.curve = satCurve(p.drive); } n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix; break;
     case 'flanger': n.lfo.frequency.value = p.rate; n.lg.gain.value = p.depth; n.fb.gain.value = p.fb; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix * 0.5; break;
     case 'softclip': if (n.thr !== p.thr) { n.thr = p.thr; n.ws.curve = clipCurve(p.thr); } n.post.gain.value = p.post; n.wet.gain.value = p.mix; n.dry.gain.value = 1 - p.mix; break;
@@ -1808,6 +1955,78 @@ function mkFx(type, p) {
     n.o.connect(n.mul.gain); n.o.start();
     inN.connect(n.mul); n.mul.connect(n.wet); n.wet.connect(out);
     inN.connect(n.dry); n.dry.connect(out);
+  }
+  if (type === 'highpass' || type === 'bandpass' || type === 'notch' || type === 'allpass') {
+    n.f = filt(type, 1000); inN.connect(n.f); n.f.connect(out);
+  }
+  if (type === 'widen') {
+    inN.channelCount = 2; inN.channelCountMode = 'explicit';
+    n.sp = ctx.createChannelSplitter(2); n.mg = ctx.createChannelMerger(2);
+    n.a0 = gain(1); n.a1 = gain(1); n.x0 = gain(0); n.x1 = gain(0);
+    inN.connect(n.sp);
+    n.sp.connect(n.a0, 0); n.a0.connect(n.mg, 0, 0);
+    n.sp.connect(n.x0, 0); n.x0.connect(n.mg, 0, 1);
+    n.sp.connect(n.a1, 1); n.a1.connect(n.mg, 0, 1);
+    n.sp.connect(n.x1, 1); n.x1.connect(n.mg, 0, 0);
+    n.mg.connect(out);
+  }
+  if (type === 'comb') {
+    n.dl = ctx.createDelay(0.1); n.fb = gain(0.7); n.wet = gain(1); n.dry = gain(0);
+    inN.connect(n.dl); n.dl.connect(n.fb); n.fb.connect(n.dl); n.dl.connect(n.wet); n.wet.connect(out);
+    inN.connect(n.dry); n.dry.connect(out);
+  }
+  if (type === 'hardclip' || type === 'fold' || type === 'tube' || type === 'overdrive' || type === 'lofi' || type === 'telephone' || type === 'bassenh') {
+    n.ws = ctx.createWaveShaper(); n.ws.oversample = '4x'; n.thr = -1; n.drive = -1; n.bits = -1;
+    n.post = gain(1); n.wet = gain(1); n.dry = gain(0);
+    if (type === 'overdrive') { n.tone = filt('lowpass', 3000); n.ws.connect(n.tone); n.tone.connect(n.post); }
+    else if (type === 'lofi') { n.lp = filt('lowpass', 4000); n.ws.connect(n.lp); n.lp.connect(n.post); }
+    else if (type === 'telephone') { n.hp = filt('highpass', 300); n.lp = filt('lowpass', 3400); n.ws.connect(n.lp); n.lp.connect(n.post); }
+    else if (type === 'bassenh') { n.lo = filt('lowpass', 120); }
+    else { n.ws.connect(n.post); }
+    if (type === 'telephone') { inN.connect(n.hp); n.hp.connect(n.ws); }
+    else if (type === 'bassenh') { inN.connect(n.lo); n.lo.connect(n.ws); }
+    else inN.connect(n.ws);
+    n.post.connect(n.wet); n.wet.connect(out);
+    inN.connect(n.dry); n.dry.connect(out);
+    if (type === 'hardclip') n.ws.curve = hardCurve(0.4);
+    if (type === 'fold') n.ws.curve = foldCurve(2);
+    if (type === 'tube') n.ws.curve = tubeCurve(0.4);
+    if (type === 'overdrive') n.ws.curve = distCurve(0.5);
+    if (type === 'lofi') n.ws.curve = bitCurve(8);
+    if (type === 'telephone') n.ws.curve = satCurve(0.4);
+    if (type === 'bassenh') n.ws.curve = satCurve(0.6);
+  }
+  if (type === 'rotary') {
+    n.dl = ctx.createDelay(0.05); n.dl.delayTime.value = 0.006; n.g = gain(1);
+    n.lfo = ctx.createOscillator(); n.lg = gain(0.2); n.lfo.connect(n.lg); n.lg.connect(n.g.gain); n.lfo.start();
+    n.lfo2 = ctx.createOscillator(); n.lg2 = gain(0); n.lfo2.connect(n.lg2); n.lg2.connect(n.dl.delayTime); n.lfo2.start();
+    inN.connect(n.dl); n.dl.connect(n.g); n.g.connect(out);
+  }
+  if (type === 'tapeecho') {
+    n.dl = ctx.createDelay(2); n.fb = gain(0.4); n.lp = filt('lowpass', 3000); n.wet = gain(0.4); n.dry = gain(1);
+    n.lfo = ctx.createOscillator(); n.lg = gain(0); n.lfo.connect(n.lg); n.lg.connect(n.dl.delayTime); n.lfo.start();
+    inN.connect(n.dl); n.dl.connect(n.lp); n.lp.connect(n.fb); n.fb.connect(n.dl);
+    n.dl.connect(n.wet); n.wet.connect(out); inN.connect(n.dry); n.dry.connect(out);
+  }
+  if (type === 'vinyl') {
+    n.hs = ctx.createBufferSource(); n.hs.buffer = noiseBuffer('hiss'); n.hs.loop = true; n.hg = gain(0.2);
+    n.cs = ctx.createBufferSource(); n.cs.buffer = noiseBuffer('crackle'); n.cs.loop = true; n.cg = gain(0.3);
+    n.hs.connect(n.hg); n.hg.connect(out); n.cs.connect(n.cg); n.cg.connect(out);
+    n.hs.start(); n.cs.start();
+    inN.connect(out);
+  }
+  if (type === 'autowah') {
+    n.f = filt('lowpass', 600); n.f.Q.value = 5;
+    n.lfo = ctx.createOscillator(); n.lg = gain(0); n.lfo.connect(n.lg); n.lg.connect(n.f.frequency); n.lfo.start();
+    inN.connect(n.f); n.f.connect(out);
+  }
+  if (type === 'haas') {
+    inN.channelCount = 2; inN.channelCountMode = 'explicit';
+    n.sp = ctx.createChannelSplitter(2); n.mg = ctx.createChannelMerger(2); n.dl = ctx.createDelay(0.05);
+    inN.connect(n.sp); n.sp.connect(n.mg, 0, 0); n.sp.connect(n.dl, 1); n.dl.connect(n.mg, 0, 1); n.mg.connect(out);
+  }
+  if (type === 'air') {
+    n.hs = filt('highshelf', 10000); inN.connect(n.hs); n.hs.connect(out);
   }
   const fx = { type, in: inN, out, n };
   fx.set = q => applyFx(fx, q);
@@ -2059,19 +2278,24 @@ $('fxBox').addEventListener('input', e => {
 
 // ---------- Events ----------
 $('play').addEventListener('click', () => { if (!playing) play(pos); });
-$('pause').addEventListener('click', pause);
-$('stop').addEventListener('click', stopAll);
+$('pause').addEventListener('click', stopAll);
 $('rec').addEventListener('click', toggleRec);
 
 $('addTrack').addEventListener('click', () => {
   tracks.push(mkTrack('Track ' + (tracks.length + 1))); sel = tracks.length - 1; render();
 });
 $('file').addEventListener('change', async e => {
-  const f = e.target.files[0]; if (!f || !tracks[sel]) return;
-  init();
-  const buf = await ctx.decodeAudioData(await f.arrayBuffer());
-  tracks[sel].clips.push({ id: uid(), name: f.name.replace(/\.[^.]+$/, '').slice(0, 24), start: pos, dur: buf.duration, buf, wave: waveOf(buf) });
-  e.target.value = ''; render();
+  const files = [...e.target.files]; e.target.value = '';
+  if (!files.length || !tracks[sel]) return;
+  let at = pos;
+  for (const f of files) {
+    try {
+      const buf = await decodeFile(f);
+      tracks[sel].clips.push({ id: uid(), name: f.name.replace(/\.[^.]+$/, '').slice(0, 24), start: at, dur: buf.duration, buf, wave: waveOf(buf) });
+      at += buf.duration;
+    } catch (err) { kitMsg(err.message); }
+  }
+  render();
 });
 $('bpm').addEventListener('input', e => { bpm = +e.target.value; $('bpmOut').textContent = bpm; render(); updateClock(); });
 $('zoom').addEventListener('input', e => { px = +e.target.value; render(); updateClock(); });
@@ -2219,7 +2443,7 @@ $('beat').addEventListener('input', e => {
   if (k.bpan !== undefined) bpan[+k.bpan] = +e.target.value;
   if (k.bpitch !== undefined) bpitch[+k.bpitch] = +e.target.value;
 });
-$('kitSel').addEventListener('change', e => { kitIdx = +e.target.value; kitMsg(''); buildBeat(); });
+$('kitSel').addEventListener('change', e => { selectKit(+e.target.value); });
 $('newKit').addEventListener('click', () => {
   const n = kits.filter(k => !k.builtin).length + 1;
   kits.push({ name: 'My kit ' + n, slots: VOICES.map(() => null) });
@@ -2443,6 +2667,75 @@ function toI16(f) {
   for (let i = 0; i < f.length; i++) { const x = Math.max(-1, Math.min(1, f[i])); out[i] = x < 0 ? x * 0x8000 : x * 0x7fff; }
   return out;
 }
+// AIFF: uncompressed 16-bit big-endian PCM, the Apple and professional standard
+function f80(sr) {
+  const e = Math.floor(Math.log2(sr)), mant = BigInt(sr) << BigInt(63 - e), out = new Uint8Array(10);
+  const ex = 16383 + e; out[0] = ex >> 8; out[1] = ex & 0xff;
+  for (let i = 0; i < 8; i++) out[2 + i] = Number((mant >> BigInt(56 - 8 * i)) & 0xffn);
+  return out;
+}
+function encodeAiff(buf) {
+  const chs = Math.min(2, buf.numberOfChannels), len = buf.length, dataLen = len * chs * 2;
+  const total = 12 + 26 + 16 + dataLen, ab = new ArrayBuffer(total), v = new DataView(ab), u8 = new Uint8Array(ab);
+  const str = (o, t) => { for (let i = 0; i < 4; i++) u8[o + i] = t.charCodeAt(i); };
+  str(0, 'FORM'); v.setUint32(4, total - 8); str(8, 'AIFF');
+  str(12, 'COMM'); v.setUint32(16, 18); v.setInt16(20, chs); v.setUint32(22, len); v.setInt16(26, 16); u8.set(f80(buf.sampleRate), 28);
+  str(38, 'SSND'); v.setUint32(42, 8 + dataLen); v.setUint32(46, 0); v.setUint32(50, 0);
+  const L = buf.getChannelData(0), R = buf.numberOfChannels > 1 ? buf.getChannelData(1) : L;
+  let o = 54;
+  for (let i = 0; i < len; i++) for (let c = 0; c < chs; c++) {
+    const x = Math.max(-1, Math.min(1, c ? R[i] : L[i]));
+    v.setInt16(o, Math.round(x < 0 ? x * 0x8000 : x * 0x7fff), false); o += 2;
+  }
+  return new Uint8Array(ab);
+}
+
+// FLAC: a valid FLAC stream with verbatim (uncompressed) frames. Players read it as normal FLAC; files are larger than compressed FLAC.
+const FLAC_CRC8 = (() => { const t = new Uint8Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 0x80 ? ((c << 1) ^ 0x07) & 0xff : (c << 1) & 0xff; t[i] = c; } return t; })();
+const FLAC_CRC16 = (() => { const t = new Uint16Array(256); for (let i = 0; i < 256; i++) { let c = i << 8; for (let k = 0; k < 8; k++) c = c & 0x8000 ? ((c << 1) ^ 0x8005) & 0xffff : (c << 1) & 0xffff; t[i] = c; } return t; })();
+function crc8(bytes) { let c = 0; for (const b of bytes) c = FLAC_CRC8[c ^ b]; return c; }
+function crc16(bytes) { let c = 0; for (const b of bytes) c = ((c << 8) & 0xffff) ^ FLAC_CRC16[((c >> 8) ^ b) & 0xff]; return c; }
+function utf8Number(n) {
+  if (n < 0x80) return [n];
+  const lim = [0, 0, 0x800, 0x10000, 0x200000, 0x4000000, 0x80000000];
+  let len = 2; while (n >= lim[len]) len++;
+  const first = (0xff << (8 - len)) & 0xff, cont = []; let rest = n;
+  for (let i = 0; i < len - 1; i++) { cont.unshift(0x80 | (rest & 0x3f)); rest = Math.floor(rest / 64); }
+  return [first | rest, ...cont];
+}
+function encodeFlac(buf) {
+  const chs = Math.min(2, buf.numberOfChannels), len = buf.length, sr = buf.sampleRate, BS = 4096;
+  const L = toI16(buf.getChannelData(0)), R = chs > 1 ? toI16(buf.getChannelData(1)) : null;
+  const out = [];
+  // "fLaC" marker and STREAMINFO (the last metadata block)
+  out.push(0x66, 0x4c, 0x61, 0x43);
+  const si = new Uint8Array(34), bits = [];
+  const put = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push(Math.floor(val / 2 ** i) & 1); };
+  put(BS, 16); put(BS, 16); put(0, 24); put(0, 24);
+  put(sr, 20); put(chs - 1, 3); put(15, 5); put(len, 36);
+  for (let i = 0; i < 16; i++) bits.push(0, 0, 0, 0, 0, 0, 0, 0);
+  for (let i = 0; i < 34; i++) { let b = 0; for (let k = 0; k < 8; k++) b = (b << 1) | bits[i * 8 + k]; si[i] = b; }
+  out.push(0x80, 0, 0, 34, ...si);
+  // Audio frames
+  let frame = 0;
+  for (let start = 0; start < len; start += BS, frame++) {
+    const n = Math.min(BS, len - start), hdr = [0xff, 0xf8, 0x70 | 0x0, (chs === 2 ? 0x10 : 0x00) | 0x08];
+    hdr[2] = 0x70;
+    const body = [...utf8Number(frame), (n - 1) >> 8, (n - 1) & 0xff];
+    const head = [...hdr, ...body, crc8([...hdr, ...body])];
+    const data = [];
+    for (let c = 0; c < chs; c++) {
+      data.push(0x02); // subframe: verbatim
+      const src = c ? R : L;
+      for (let i = 0; i < n; i++) { const x = src[start + i] & 0xffff; data.push(x >> 8, x & 0xff); }
+    }
+    const frameBytes = [...head, ...data];
+    const c16 = crc16(frameBytes);
+    frameBytes.push(c16 >> 8, c16 & 0xff);
+    for (const b of frameBytes) out.push(b);
+  }
+  return new Uint8Array(out);
+}
 function loadLame() {
   return new Promise((res, rej) => {
     if (window.lamejs) return res();
@@ -2470,8 +2763,10 @@ async function finishExport(blob, fmt) {
     if (fmt === 'mp4' && !blob.type.includes('mp4')) return saveFile(blob, nameFor('webm'));
     const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
     if (fmt === 'wav') return saveFile(new Blob([encodeWavStereo(buf)], { type: 'audio/wav' }), nameFor('wav'));
+    if (fmt === 'flac') return saveFile(new Blob([encodeFlac(buf)], { type: 'audio/flac' }), nameFor('flac'));
+    if (fmt === 'aiff') return saveFile(new Blob([encodeAiff(buf)], { type: 'audio/aiff' }), nameFor('aiff'));
     if (fmt === 'mp3') { await loadLame(); return saveFile(encodeMp3(buf), nameFor('mp3')); }
-  } catch (err) { kitMsg('Export failed: ' + err.message); }
+  } catch (err) { nlReportError('NL-040', fmt, err); kitMsg('Export failed: ' + err.message); }
 }
 $('export').addEventListener('click', () => {
   if (mixRec) { endMix(); return; }
@@ -2495,7 +2790,9 @@ function addNumBox(r) {
   n.setAttribute('aria-label', (r.getAttribute('aria-label') || r.title || 'value') + (pct ? ' percent' : ' value'));
   const unit = document.createElement('span');
   unit.className = 'numunit'; unit.textContent = pct ? '%' : '';
-  r.after(n); n.after(unit);
+  // Keep the number and its unit (%) together as one unit, so the % sits right beside the number
+  const wrap = document.createElement('span'); wrap.className = 'numwrap';
+  wrap.append(n, unit); r.after(wrap);
   r.addEventListener('input', show);
   n.addEventListener('change', () => {
     const raw = +n.value || 0;
@@ -3119,12 +3416,20 @@ let inDevId = '', outDevId = '';
 async function getMicStream() {
   try { return await navigator.mediaDevices.getUserMedia({ audio: micConstraints() }); }
   catch (err) {
-    if (!inDevId) throw err;
+    if (!inDevId) { nlReportError('NL-050', 'microphone', err); throw err; }
     // The chosen input is no longer plugged in: fall back to the system default
     inDevId = ''; if ($('inDev')) $('inDev').value = '';
+    nlReportError('NL-051', 'input device', null);
     kitMsg('That input is not connected. Using the system default input.');
     return navigator.mediaDevices.getUserMedia({ audio: micConstraints() });
   }
+}
+// Decodes any file the browser can read as audio (WAV, MP3, OGG, FLAC, AAC/M4A, Opus, WebM, and the sound of MP4/MOV video)
+async function decodeFile(f) {
+  init();
+  const bytes = await f.arrayBuffer();
+  try { return await ctx.decodeAudioData(bytes); }
+  catch (err) { nlReportError('NL-030', f.name, err); throw new Error('Cannot read "' + f.name + '". This browser cannot decode that format. Export it as WAV or MP3 and import again.'); }
 }
 function micConstraints() { const a = { ...LOW_AUDIO }; if (inDevId) a.deviceId = { exact: inDevId }; return a; }
 async function populateDevices() {
@@ -3378,7 +3683,7 @@ function removeClip(c) {
     if ($('ripple').checked) t.clips.forEach(x => { if (x.start >= start + gap - 1e-6) x.start = Math.max(0, x.start - gap); });
   });
 }
-function deleteSelected() {
+function deleteTakes() {
   if (clipSet.size) {
     [...clipSet].forEach(id => { const c = findClip(id); if (c) removeClip(c); });
     clipSet = new Set(); selClip = null; render();
@@ -3398,17 +3703,27 @@ function deleteSelected() {
   selClip = null; render();
   kitMsg(removed ? `Removed ${removed} take${removed === 1 ? '' : 's'}` : 'Nothing to remove. Select a take, or put the playhead on one');
 }
-function deleteTracks() {
+// Removes the selected tracks. Returns how many were removed, or -1 if the last track must stay.
+function deleteTrackList() {
   const idxs = (trackSet.size ? [...trackSet] : [sel]).filter(i => tracks[i]).sort((a, b) => b - a);
-  if (tracks.length - idxs.length < 1) { kitMsg('Keep at least one track'); return; }
+  if (!idxs.length) return 0;
+  if (tracks.length - idxs.length < 1) return -1;
   idxs.forEach(i => tracks.splice(i, 1));
   sel = Math.max(0, Math.min(sel, tracks.length - 1));
   trackSet = new Set(); selClip = null; render();
-  kitMsg(idxs.length > 1 ? idxs.length + ' tracks deleted' : 'Track deleted');
+  return idxs.length;
+}
+// Delete: removes the selected takes (or the takes under the playhead) and the selected tracks
+function deleteSelected() {
+  deleteTakes();
+  const takesNote = $('kitMsg').textContent;
+  const n = deleteTrackList();
+  if (n > 0) kitMsg(n > 1 ? n + ' tracks deleted' : 'Track deleted');
+  else if (n < 0) kitMsg('Keep at least one track. ' + takesNote);
+  else kitMsg(takesNote);
 }
 // split button is wired above
 $('delSel').addEventListener('click', deleteSelected);
-$('delTrack').addEventListener('click', deleteTracks);
 
 // ---------- Save the project as a zip of every track ----------
 const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
@@ -4000,7 +4315,7 @@ $('settingsPanel').append($('monBtn'));
   const save = mkBtn('Save lyrics', 'lyricsSave', false);
   const dl = mkBtn('Download .txt', 'lyricsDl', false);
   const clr = mkBtn('Clear', 'lyricsClear', false);
-  save.addEventListener('click', () => { try { localStorage.setItem('nl-lyrics', ta.value); kitMsg('Lyrics saved'); } catch (err) { kitMsg('Could not save lyrics on this device'); } });
+  save.addEventListener('click', () => { try { localStorage.setItem('nl-lyrics', ta.value); kitMsg('Lyrics saved'); } catch (err) { nlReportError('NL-070', 'lyrics', err); kitMsg('Could not save lyrics on this device'); } });
   dl.addEventListener('click', () => saveFile(new Blob([ta.value], { type: 'text/plain' }), 'lyrics.txt'));
   clr.addEventListener('click', () => { if (ta.value && confirm('Clear all lyrics?')) { ta.value = ''; try { localStorage.setItem('nl-lyrics', ''); } catch (err) {} } });
   box.append(ta, save, dl, clr);
@@ -4182,12 +4497,12 @@ $('lanes').addEventListener('drop', async e => {
   const at = Math.max(0, (e.clientX - body.getBoundingClientRect().left) / px);
   init();
   for (const f of e.dataTransfer.files) {
-    if (!/^audio\//.test(f.type) && !/\.(wav|mp3|ogg|flac|m4a|aiff?)$/i.test(f.name)) continue;
+    if (!/^(audio|video)\//.test(f.type) && !/\.(wav|mp3|ogg|oga|opus|flac|m4a|aac|aiff?|caf|webm|mp4|mov|mka|wma)$/i.test(f.name)) continue;
     try {
-      const buf = await ctx.decodeAudioData(await f.arrayBuffer());
+      const buf = await decodeFile(f);
       const clip = { id: uid(), name: f.name.replace(/\.[^.]+$/, '').slice(0, 24), start: at, dur: buf.duration, buf, wave: waveOf(buf) };
       tr.clips.push(clip); selClip = clip.id;
-    } catch (err) { kitMsg('Could not read ' + f.name); }
+    } catch (err) { kitMsg(err.message); }
   }
   render();
   kitMsg('Audio added to ' + tr.name + ' where you dropped it');
@@ -4330,11 +4645,11 @@ function xfadeOf(c, tr) {
 }
 // Shapes one take's gain: fade in, fade out, and the crossfade with any take it overlaps
 function fadeEnv(g, c, tr, t0, into) {
-  const xf = xfadeOf(c, tr), fi = xf.fi, fo = xf.fo;
-  if (fi > 0 && into < fi) { g.gain.setValueAtTime(tr.vol * into / fi, t0); g.gain.linearRampToValueAtTime(tr.vol, t0 + (fi - into)); }
+  const xf = xfadeOf(c, tr), fi = xf.fi, fo = xf.fo, v = tr.vol * (c.vol ?? 1);
+  if (fi > 0 && into < fi) { g.gain.setValueAtTime(v * into / fi, t0); g.gain.linearRampToValueAtTime(v, t0 + (fi - into)); }
   if (fo > 0) {
     const endT = t0 + Math.max(0, c.dur - into), fs = endT - fo;
-    if (fs > t0) { g.gain.setValueAtTime(tr.vol, fs); g.gain.linearRampToValueAtTime(0, endT); }
+    if (fs > t0) { g.gain.setValueAtTime(v, fs); g.gain.linearRampToValueAtTime(0, endT); }
   }
 }
 // ---------- Every slider is a rotary knob now (the original slider still holds the value) ----------
@@ -4398,19 +4713,13 @@ new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(nd => {
 document.querySelectorAll('input[type=range]').forEach(makeKnob);
 // ---------- Zoom: buttons on the toolbar, and Ctrl/Cmd + scroll wheel over the timeline ----------
 (function zoomControls() {
-  const ed = document.querySelector('.edittools');
-  const zIn = mkBtn('+', 'zoomIn', false), zOut = mkBtn('\u2212', 'zoomOut', false);
-  zIn.title = 'Zoom in'; zOut.title = 'Zoom out'; zIn.setAttribute('aria-label', 'Zoom in'); zOut.setAttribute('aria-label', 'Zoom out');
-  ed.insertBefore(zIn, ed.firstChild.nextSibling);
-  ed.insertBefore(zOut, zIn.nextSibling);
+  // The Zoom dial in the top bar and Ctrl/Cmd + scroll both control zoom; the toolbar buttons were removed
   const zoomSlider = $('zoom'); zoomSlider.max = 400;
   function setZoom(v) {
     px = Math.max(20, Math.min(400, v));
     zoomSlider.value = Math.round(px);
     render(); updateClock();
   }
-  zIn.addEventListener('click', () => setZoom(px * 1.25));
-  zOut.addEventListener('click', () => setZoom(px / 1.25));
   const arr = $('arr');
   arr.addEventListener('wheel', e => {
     if (e.shiftKey) return; // Shift + wheel scrolls the timeline sideways
@@ -4609,32 +4918,28 @@ $('beat').addEventListener('click', e => {
 (function beginnerMode() {
   const EXPLAIN = {
     play: ['Play', 'Starts playback from the playhead. Press it again to pause.'],
-    pause: ['Pause', 'Stops playback and keeps the playhead where it is.'],
-    stop: ['Stop', 'Stops playback and keeps your place.'],
+    pause: ['Pause', 'Stops playback and keeps the playhead where it is. Play resumes from there.'],
     rewind: ['Rewind', 'Moves the playhead back to the start of the song.'],
     rec: ['Record', 'Records your mic onto the selected track at the playhead. Press again to stop.'],
     metro: ['Metronome', 'Plays a click on every beat while the song plays.'],
     latencyBtn: ['Latency', 'Shows how far recordings are shifted to line up with the beat, and lets you pick your input and output devices.'],
     addTrack: ['Add track', 'Adds an empty track (a row) to the timeline.'],
-    splitBtn: ['Split at playhead', 'Cuts the take under the playhead into two pieces.'],
+    splitBtn: ['Split', 'Cuts the take under the playhead into two pieces.'],
     dupTrack: ['Duplicate', 'Copies the selected takes, or the selected tracks, and places the copies to the left.'],
-    delSel: ['Delete', 'Removes the selected takes. Turn on Ripple to close the gap.'],
-    delTrack: ['Delete track', 'Removes the selected tracks.'],
+    delSel: ['Delete', 'Removes the selected takes and the selected tracks. Turn on Ripple to close the gap.'],
     selAll: ['Select all tracks', 'Selects every take on the timeline so you can move, copy, or delete them together.'],
     gridSel: ['Grid', 'Sets how far takes snap when you move them. Bar is the widest step, 1/32 the narrowest.'],
     snap: ['Snap', 'When on, takes and split points line up with the grid.'],
-    zoomIn: ['Zoom in', 'Makes the timeline bigger so you can see more detail. Ctrl (or Cmd) and scroll also zooms.'],
-    zoomOut: ['Zoom out', 'Makes the timeline smaller so you can see more of the song.'],
     zoom: ['Zoom', 'Drag to zoom the timeline in or out.'],
     bpm: ['Tempo', 'The speed of the beat in beats per minute. Drag to change it, from 10 to 300.'],
     master: ['Master volume', 'Sets the level of the whole mix.'],
     saveTrack: ['Save project (.zip)', 'Saves every track as WAV files plus a full mix, in one zip.'],
-    export: ['Export mix', 'Records the full mix as a WAV, MP3, or MP4 file.'],
+    export: ['Export mix', 'Saves the full mix as a WAV, MP3, FLAC, AIFF, or MP4 file.'],
     fsBtn: ['Full screen', 'Fills your screen with the DAW. Press Esc to leave.'],
     publishBtn: ['Publish', 'Downloads your mix and opens YouTube or SoundCloud so you can upload it.'],
     tlBtn: ['Record timelapse', 'Records this screen and its sound until you press Stop, then saves the video.'],
     monBtn: ['Monitor input', 'Plays what your mic or instrument hears through your speakers, so you can play along.'],
-    atBtn: ['Auto-tune take', 'Makes a tuned copy of the selected take that snaps it to the chosen key. The original stays unchanged.'],
+    atBtn: ['Set autotune', 'Makes a tuned copy of the selected take that snaps it to the chosen key. The original stays unchanged.'],
     atAmt: ['Strength', 'How strongly each note is pulled to the key. 100% is full correction.'],
     atRetune: ['Retune speed', 'How quickly the correction can move from one note to the next. Lower is faster.'],
     atHum: ['Humanize', 'Keeps some natural movement in the pitch so the result sounds less robotic.'],
@@ -4681,7 +4986,6 @@ $('beat').addEventListener('click', e => {
   const HOW = {
     play: 'Click once to start from the playhead. Click Pause or Play again to stop. Press Space on the keyboard does the same.',
     pause: 'Freezes playback where it is. Press Play to carry on from exactly that spot.',
-    stop: 'Stops playback but keeps the playhead where it stopped, so Play resumes from there.',
     rewind: 'Moves the playhead back to bar 1. If the song is playing, it keeps playing from the start.',
     rec: 'Click to start recording from your mic into the selected track. Click again to stop, and the take appears on the timeline.',
     metro: 'Click to turn the metronome on or off. When on, you hear a click on every beat while the song plays.',
@@ -4689,18 +4993,15 @@ $('beat').addEventListener('click', e => {
     addTrack: 'Click to add a new empty track (a row) at the bottom of the timeline.',
     splitBtn: 'Put the playhead inside a take, then click. The take is cut in two at the playhead, snapped to the grid if Snap is on.',
     dupTrack: 'With takes selected, copies them just before the selection. With tracks selected, copies those tracks.',
-    delSel: 'Removes the selected takes. Turn on Ripple first to close the gap they leave.',
-    delTrack: 'Removes the selected tracks, including their takes. Click Select all tracks first to pick several.',
+    delSel: 'Removes the selected takes and the selected tracks, including their takes. Turn on Ripple first to close the gap the takes leave. Click Select all tracks first to pick several tracks.',
     selAll: 'Selects every take on the timeline. Then you can drag them together, duplicate, or delete them.',
     gridSel: 'Choose how big each snap step is. Bar is the widest; 1/32 is the finest. Takes snap to these steps when you move them.',
     snap: 'When ticked, things line up with the grid. Untick it to place takes anywhere.',
-    zoomIn: 'Makes the timeline bigger. Holding Ctrl (or Cmd) and scrolling the mouse wheel over the timeline does the same.',
-    zoomOut: 'Makes the timeline smaller so you can see more of the song.',
     zoom: 'Drag to zoom the timeline in or out.',
     bpm: 'Drag to set the tempo in beats per minute. The beat, metronome, and grid all follow it.',
     master: 'Drag to change the level of the whole mix.',
     saveTrack: 'Click to download a zip with one WAV per track and a full mix WAV.',
-    export: 'Click to choose WAV, MP3, or MP4, then the full mix downloads.',
+    export: 'Click to choose WAV, MP3, FLAC, AIFF, or MP4, then the full mix downloads.',
     fsBtn: 'Click to fill the screen. Press Esc or click again to leave full screen.',
     publishBtn: 'Choose YouTube or SoundCloud. Your mix downloads, the title and description are copied, and the upload page opens.',
     tlBtn: 'Click to start recording this screen and its sound. Click Stop timelapse to save the video.',
@@ -4747,6 +5048,25 @@ $('beat').addEventListener('click', e => {
     tremolo: ['Tremolo', 'Pulses the volume up and down.', 'Rate sets the pulse speed. Depth sets how strong the pulse is.'],
     autopan: ['Auto-pan', 'Moves the sound slowly from left to right and back.', 'Rate sets the speed. Depth sets how far it moves.'],
     ringmod: ['Ring modulator', 'Mixes the sound with a tone to make metallic, robotic textures.', 'Freq sets the tone. Mix sets how much of the effect you hear.'],
+    highpass: ['High-pass filter', 'Removes the low sounds below a set point, so the mix sounds thinner and cleaner.', 'Freq sets where the cut starts. Q sharpens the edge.'],
+    bandpass: ['Band-pass filter', 'Keeps only a narrow band of frequencies, like a telephone or an old radio.', 'Freq sets the centre. Q narrows the band.'],
+    notch: ['Notch filter', 'Removes one narrow frequency, useful for a hum or a ringing note.', 'Freq sets the frequency to remove. Q sets how narrow the cut is.'],
+    allpass: ['All-pass filter', 'Changes the timing of the sound without changing its tone. Mostly used to shape stereo or phase.', 'Freq sets where the shift is strongest.'],
+    widen: ['Stereo widener', 'Spreads the sound wider between the left and right speakers.', 'Width at 1 is normal, above 1 is wider, and 0 is mono.'],
+    comb: ['Comb filter', 'A very short repeat that colours the sound with a metallic, ringing tone.', 'Time sets the gap. Feedback sets how strong the ring is.'],
+    hardclip: ['Hard clipper', 'Chops the loudest peaks flat for a harsh, loud sound.', 'Threshold sets where the chop starts. Gain makes the result louder or quieter.'],
+    fold: ['Wavefolder', 'Folds the wave back on itself to create rich, buzzy overtones.', 'Drive sets how many folds. Mix sets how much you hear.'],
+    tube: ['Tube saturation', 'Adds warm, slightly uneven distortion like a valve amplifier.', 'Drive sets how warm. Mix keeps some of the clean sound.'],
+    overdrive: ['Overdrive', 'A smooth, bluesy distortion that is gentler than a fuzz pedal.', 'Drive sets how hard it is pushed. Tone darkens or brightens it.'],
+    rotary: ['Rotary speaker', 'Imitates a spinning speaker cabinet, with a swirling wobble in volume and pitch.', 'Rate sets the spin speed. Depth sets how strong the swirl is.'],
+    tapeecho: ['Tape echo', 'Echo that sounds like an old tape machine, warm and slightly wobbly.', 'Time sets the gap. Feedback sets the repeats. Wow adds the wobble.'],
+    vinyl: ['Vinyl and tape hiss', 'Adds the crackle of a record and the hiss of old tape for a lived-in sound.', 'Crackle sets the pops. Hiss sets the background noise.'],
+    lofi: ['Lo-fi', 'Makes the sound rough and dusty, like an old cassette or a phone recording.', 'Bits lowers the detail. Cut removes the top end.'],
+    telephone: ['Telephone', 'Makes the sound narrow and tinny, as if it came through a phone line.', 'Low and High set the edges of the band that is kept.'],
+    autowah: ['Auto-wah', 'A filter that sweeps up and down by itself, like a wah pedal that moves on its own.', 'Freq is the base point. Rate sets the speed. Sweep sets the range.'],
+    bassenh: ['Bass enhancer', 'Adds weight to the lowest notes by blending in a warm, saturated copy of the bass.', 'Amount sets how much low weight you add.'],
+    haas: ['Haas widener', 'Delays one side very slightly so the sound seems wider without getting louder.', 'Ms sets the delay. Keep it under 30 ms for a natural result.'],
+    air: ['Air boost', 'Lifts the very top of the sound so it sounds open and sparkly.', 'Gain sets how much air you add.'],
   };
   // Instruments: what a row or menu choice is
   function instrumentText(v, slot) {
@@ -4814,15 +5134,24 @@ $('beat').addEventListener('click', e => {
     const label = (t.title || t.getAttribute('aria-label') || t.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60);
     return [label || 'Button', 'A button. Clicking it does what its label says. Turn Beginner off to use it normally.'];
   }
+  // Requests made while the mouse moves are combined: the box is drawn once per frame, not once per element
+  let pendingShow = null, showQueued = false, shownKey = '';
   function showAt(cx, cy, title, text, how) {
-    h.textContent = title;
-    p.style.whiteSpace = 'pre-line';
-    p.textContent = how ? text + '\n\nHow to use it: ' + how : text;
-    pop.hidden = false;
-    const w = Math.min(320, innerWidth - 24);
-    pop.style.width = w + 'px';
-    pop.style.left = Math.max(12, Math.min(cx + 12, innerWidth - w - 12)) + 'px';
-    pop.style.top = Math.max(12, Math.min(cy + 12, innerHeight - pop.offsetHeight - 12)) + 'px';
+    pendingShow = { cx, cy, title, text, how };
+    if (showQueued) return;
+    showQueued = true;
+    requestAnimationFrame(() => {
+      showQueued = false;
+      const q = pendingShow; if (!q) return;
+      const body = q.how ? q.text + '\n\nHow to use it: ' + q.how : q.text;
+      const key = q.title + '\u0000' + body;
+      if (key !== shownKey) { shownKey = key; h.textContent = q.title; p.style.whiteSpace = 'pre-line'; p.textContent = body; }
+      if (pop.hidden) pop.hidden = false;
+      const w = Math.min(320, innerWidth - 24);
+      pop.style.width = w + 'px';
+      pop.style.left = Math.max(12, Math.min(q.cx + 12, innerWidth - w - 12)) + 'px';
+      pop.style.top = Math.max(12, Math.min(q.cy + 12, innerHeight - pop.offsetHeight - 12)) + 'px';
+    });
   }
 
   const bb = mkBtn('Beginner', 'beginnerBtn', false);
@@ -4960,9 +5289,9 @@ function applyBeatPreset(b) {
   [
     'Open Beat making (the folder bar at the top). In Beat presets, pick any of the 100 beats and press Add beat to timeline. It lays down two minutes of drums and parts on the timeline.',
     'Move a beat anywhere on the timeline by dragging its box. Drag its edges to make it shorter or longer.',
-    'Press Play in the top bar to hear it. Press Pause to stop, or Stop to return to the start.',
+    'Press Play in the top bar to hear it. Press Pause to stop, which keeps your place. Press Rewind to go back to the start.',
     'To add your own sound, use Add instrument in Beat making, then click the steps to place hits. Click Roll to write notes for a synth or guitar.',
-    'To add a voice or a live instrument, press Record in the top bar, sing or play, then press Stop. Your take appears on the timeline.',
+    'To add a voice or a live instrument, press Record in the top bar, sing or play, then press Stop rec. Your take appears on the timeline.',
     'Shape the sound in Mixing: use the effects on each track, and Full screen on the EQ for precise control.',
     'Write your words in the Lyrics folder. They save on this device.',
     'When you are happy, press Export mix in the folder bar to save the song.'
@@ -5089,6 +5418,7 @@ function applyBeatPreset(b) {
   }, true);
   const tick = () => {
     const on = document.body.classList.contains('beginner');
+    if (!on) { Object.values(els).forEach(b => { b.hidden = true; }); return; }
     scanRolls();
     defs.forEach(d => {
       if (!els[d.key]) els[d.key] = make(d);
@@ -5098,7 +5428,7 @@ function applyBeatPreset(b) {
       else box.hidden = true;
     });
   };
-  setInterval(tick, 400);
+  setInterval(tick, 500);
   window.addEventListener('resize', tick);
   tick();
 })();
@@ -5144,6 +5474,7 @@ function applyBeatPreset(b) {
     box.append(head, ta, tele, bar);
     document.body.append(box);
     pop = box;
+    if (!loopOn) { loopOn = true; lastT = performance.now(); requestAnimationFrame(loop); }
     // Start at a comfortable size, near the right edge of the screen
     box.style.left = Math.max(12, window.innerWidth - 280) + 'px';
     box.style.top = '120px';
@@ -5179,8 +5510,10 @@ function applyBeatPreset(b) {
   });
 
   // Teleprompter: while the song plays, the text scrolls at the chosen speed; it goes back to the top when playback starts from the beginning
+  let loopOn = false, lastGlow = false;
   const loop = now => {
-    if (pop && teleOn && tele) {
+    if (!pop) { loopOn = false; return; }
+    if (teleOn && tele) {
       if (playing && !wasPlaying && pos0 < 0.05) { teleY = 0; tele.scrollTop = 0; }
       if (playing) {
         const dt = Math.min(0.1, Math.max(0, (now - lastT) / 1000));
@@ -5190,14 +5523,155 @@ function applyBeatPreset(b) {
         teleY = tele.scrollTop;
       }
     }
+    // The words glow while the teleprompter is scrolling, and stop glowing on Pause or Stop
+    const glowNow = !!(playing && teleOn && tele && !tele.hidden);
+    if (tele && glowNow !== lastGlow) { tele.classList.toggle('glowing', glowNow); lastGlow = glowNow; }
     wasPlaying = playing; lastT = now;
     requestAnimationFrame(loop);
   };
-  requestAnimationFrame(loop);
 
   const btn = openBtn;
   btn.addEventListener('click', open);
   window.addEventListener('keydown', e => { if (e.key === 'Escape' && pop && e.target === document.body) { pop.remove(); pop = null; ta = tele = teleB = lab = null; } });
+})();
+// ---------- Right-click menu on the timeline: split, duplicate, fades, pitch, volume, select all tracks, delete ----------
+(function timelineMenu() {
+  const menu = document.createElement('div');
+  menu.id = 'ctxMenu'; menu.className = 'ctxmenu'; menu.hidden = true; menu.setAttribute('role', 'menu');
+  document.body.append(menu);
+  const takesNow = () => selectedTakes();
+  const row = (label, control) => {
+    const r = document.createElement('div'); r.className = 'ctxrow';
+    const t = document.createElement('span'); t.textContent = label;
+    r.append(t); if (control) r.append(control); return r;
+  };
+  const action = (label, fn) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ctxitem'; b.textContent = label; b.setAttribute('role', 'menuitem');
+    b.addEventListener('click', () => { hide(); fn(); });
+    return b;
+  };
+  const numberBox = (min, max, step, value, onChange) => {
+    const i = document.createElement('input'); i.type = 'number'; i.min = min; i.max = max; i.step = step; i.value = value;
+    i.addEventListener('change', () => onChange(+i.value));
+    i.addEventListener('click', e => e.stopPropagation());
+    return i;
+  };
+  function build(takeId, laneIdx, cx, cy, bodyX) {
+    menu.innerHTML = '';
+    const take = takeId ? findClip(takeId) : null;
+    menu.append(action('Split', () => $('splitBtn').click()));
+    menu.append(action('Duplicate', () => $('dupTrack').click()));
+    const takes = takesNow();
+    const first = takes[0] || take;
+    const fi = numberBox(0, 30, 0.1, first ? (first.fadeIn || 0) : 0, v => { $('fadeIn').value = Math.max(0, v || 0); $('fadeIn').dispatchEvent(new Event('change')); });
+    menu.append(row('Fade in (s)', fi));
+    const fo = numberBox(0, 30, 0.1, first ? (first.fadeOut || 0) : 0, v => { $('fadeOut').value = Math.max(0, v || 0); $('fadeOut').dispatchEvent(new Event('change')); });
+    menu.append(row('Fade out (s)', fo));
+    const pt = numberBox(-24, 24, 1, first ? (first.pitch || 0) : 0, v => { if (selClip) { $('clipPitch').value = v; $('clipPitch').dispatchEvent(new Event('change')); } });
+    menu.append(row('Pitch (semitones)', pt));
+    const vol = document.createElement('input'); vol.type = 'range'; vol.min = 0; vol.max = 200; vol.step = 1;
+    vol.value = Math.round(100 * (first && first.vol !== undefined ? first.vol : 1));
+    const volOut = document.createElement('span'); volOut.className = 'ctxval'; volOut.textContent = vol.value + '%';
+    vol.addEventListener('click', e => e.stopPropagation());
+    vol.addEventListener('input', () => {
+      volOut.textContent = vol.value + '%';
+      takesNow().forEach(c => { c.vol = +vol.value / 100; });
+      if (!takesNow().length) kitMsg('Select a take first, then set its volume');
+    });
+    const vr = row('Volume', null); vr.append(vol, volOut); menu.append(vr);
+    menu.append(action('Select all tracks', () => $('selAll').click()));
+    menu.append(action('Delete', () => $('delSel').click()));
+    // Keep it on screen
+    menu.hidden = false;
+    const w = menu.offsetWidth, h = menu.offsetHeight;
+    menu.style.left = Math.max(8, Math.min(cx, innerWidth - w - 8)) + 'px';
+    menu.style.top = Math.max(8, Math.min(cy, innerHeight - h - 8)) + 'px';
+  }
+  function hide() { menu.hidden = true; }
+  $('arr').addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const laneEl = e.target.closest('.lane');
+    if (laneEl) { const i = +laneEl.dataset.i; if (tracks[i]) { if (!e.ctrlKey && !e.metaKey && !e.shiftKey) { trackSet = new Set(); clipSet = new Set(); } sel = i; } }
+    const clipEl = e.target.closest('.clip');
+    const mc = clipEl ? findClip(clipEl.dataset.id) : null;
+    if (mc && !mc.live) { selClip = mc.id; clipSet = new Set(); }
+    else if (clipEl) selClip = null;
+    // The playhead moves to where you right-clicked, so Split cuts there
+    const body = e.target.closest('.body');
+    if (body && !playing) { pos = Math.max(0, (e.clientX - body.getBoundingClientRect().left) / px); placePlayhead(); updateClock(); }
+    render();
+    build(mc && !mc.live ? mc.id : null, laneEl ? +laneEl.dataset.i : sel, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerdown', e => { if (!menu.hidden && !e.target.closest('#ctxMenu')) hide(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
+  window.addEventListener('resize', hide);
+})();
+// ---------- Error codes: every failure gets a code and a plain description, and can be emailed to the developer ----------
+const NL_SUPPORT_EMAIL = 'nightlightsincofficial@gmail.com';
+const NL_ERRORS = {
+  'NL-001': ['Unexpected error', 'Something in the page stopped working. Try again. If it keeps happening, email the code.'],
+  'NL-002': ['Background task failed', 'Something the page was doing in the background failed. Try again.'],
+  'NL-030': ['File could not be read', 'The browser cannot decode this file. Export it as WAV or MP3 and import again.'],
+  'NL-031': ['Kit sample could not be loaded', 'That sample file could not be read as audio. Try WAV or MP3.'],
+  'NL-040': ['Export failed', 'The mix could not be exported. Try WAV or MP3, or export again.'],
+  'NL-050': ['Microphone is not available', 'The page could not open the microphone. Check the browser permission for this site.'],
+  'NL-051': ['Input device not connected', 'The chosen input is no longer plugged in. The system default is being used.'],
+  'NL-052': ['Output device could not be changed', 'This browser could not switch the output device. The system default is being used.'],
+  'NL-070': ['Lyrics could not be saved', 'This browser would not save the lyrics on this device. Copy them somewhere safe.']
+};
+let nlErrLog = [];
+let nlLastToast = null;
+function nlErrorDetail(err) { return err && err.message ? String(err.message).slice(0, 160) : ''; }
+// Records an error with its code, and shows the code to the person
+function nlReportError(code, detail, err) {
+  const info = NL_ERRORS[code] || ['Error', ''];
+  const d = String(detail || '') + (err ? ' | ' + nlErrorDetail(err) : '');
+  nlErrLog.push({ code, detail: d, time: new Date().toISOString() });
+  if (nlErrLog.length > 200) nlErrLog.shift();
+  try { localStorage.setItem('nl-error-log', JSON.stringify(nlErrLog.slice(-50))); } catch (e) {}
+  if (typeof console !== 'undefined') console.warn('[NightLights ' + code + ']', info[0], d);
+  nlShowToast(code, info[0], info[1]);
+}
+function nlShowToast(code, title, text) {
+  let box = document.getElementById('nlErrToast');
+  if (!box) {
+    box = document.createElement('div'); box.id = 'nlErrToast'; box.className = 'nlerrtoast'; box.setAttribute('role', 'alert');
+    const msg = document.createElement('div'); msg.id = 'nlErrMsg';
+    const row = document.createElement('div'); row.className = 'nlerrrow';
+    const mail = mkBtn('Email this code', 'nlErrMail', false);
+    const dismiss = mkBtn('Dismiss', 'nlErrDismiss', false);
+    mail.addEventListener('click', () => nlOpenReportMail());
+    dismiss.addEventListener('click', () => { box.hidden = true; });
+    row.append(mail, dismiss);
+    box.append(msg, row);
+    document.body.append(box);
+  }
+  const count = nlErrLog.filter(e => e.code === code).length;
+  document.getElementById('nlErrMsg').textContent = 'Error ' + code + ': ' + title + (count > 1 ? ' (happened ' + count + ' times)' : '') + '. ' + text;
+  box.hidden = false;
+  nlLastToast = code;
+}
+// Opens the person's email app with every error code filled in, addressed to the developer
+function nlOpenReportMail() {
+  const seen = new Map();
+  nlErrLog.forEach(e => { const k = e.code + ' ' + e.detail; seen.set(k, (seen.get(k) || 0) + 1); });
+  const lines = seen.size
+    ? [...seen.entries()].map(([k, n]) => { const code = k.split(' ')[0]; return code + '  ' + ((NL_ERRORS[code] || [''])[0]) + '  ' + k.slice(code.length + 1) + (n > 1 ? '  (x' + n + ')' : ''); }).join('\n')
+    : 'No errors recorded in this session.';
+  const body = 'Error codes from NightLights Inc. Studio DAW\n\n' + lines +
+    '\n\nWhat I was doing when it happened: \n\nBrowser: ' + navigator.userAgent + '\nSent: ' + new Date().toString();
+  const url = 'mailto:' + NL_SUPPORT_EMAIL + '?subject=' + encodeURIComponent('NightLights DAW error report') + '&body=' + encodeURIComponent(body.slice(0, 1800));
+  const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener';
+  document.body.append(a); a.click(); a.remove();
+  kitMsg('Your email app should open with the error codes. Press send to email them.');
+}
+window.addEventListener('error', e => nlReportError('NL-001', (e.message || 'error') + ' @' + (e.lineno || '?'), e.error));
+window.addEventListener('unhandledrejection', e => nlReportError('NL-002', 'promise', e.reason));
+(function errorMailButton() {
+  const b = mkBtn('Email error codes', 'nlReport', false);
+  b.id = 'nlReportBtn';
+  b.addEventListener('click', () => nlOpenReportMail());
+  $('settingsPanel').append(b);
 })();
 </script>
 </body>
