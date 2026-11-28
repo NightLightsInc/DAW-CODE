@@ -3714,13 +3714,13 @@ function deleteTrackList() {
   return idxs.length;
 }
 // Delete: removes the selected takes (or the takes under the playhead) and the selected tracks
+// Delete removes only the take or takes that are selected. It never removes a track layer.
 function deleteSelected() {
-  deleteTakes();
-  const takesNote = $('kitMsg').textContent;
-  const n = deleteTrackList();
-  if (n > 0) kitMsg(n > 1 ? n + ' tracks deleted' : 'Track deleted');
-  else if (n < 0) kitMsg('Keep at least one track. ' + takesNote);
-  else kitMsg(takesNote);
+  const ids = clipSet.size ? [...clipSet] : (selClip ? [selClip] : []);
+  if (!ids.length) { kitMsg('Select a take first. Delete only removes selected takes.'); return; }
+  ids.forEach(id => { const c = findClip(id); if (c) removeClip(c); });
+  clipSet = new Set(); selClip = null; render();
+  kitMsg(ids.length > 1 ? ids.length + ' takes removed' : 'Take removed');
 }
 // split button is wired above
 $('delSel').addEventListener('click', deleteSelected);
@@ -4926,7 +4926,7 @@ $('beat').addEventListener('click', e => {
     addTrack: ['Add track', 'Adds an empty track (a row) to the timeline.'],
     splitBtn: ['Split', 'Cuts the take under the playhead into two pieces.'],
     dupTrack: ['Duplicate', 'Copies the selected takes, or the selected tracks, and places the copies to the left.'],
-    delSel: ['Delete', 'Removes the selected takes and the selected tracks. Turn on Ripple to close the gap.'],
+    delSel: ['Delete', 'Removes the selected take. Track layers are not removed by this button. Turn on Ripple to close the gap.'],
     selAll: ['Select all tracks', 'Selects every take on the timeline so you can move, copy, or delete them together.'],
     gridSel: ['Grid', 'Sets how far takes snap when you move them. Bar is the widest step, 1/32 the narrowest.'],
     snap: ['Snap', 'When on, takes and split points line up with the grid.'],
@@ -4993,7 +4993,7 @@ $('beat').addEventListener('click', e => {
     addTrack: 'Click to add a new empty track (a row) at the bottom of the timeline.',
     splitBtn: 'Put the playhead inside a take, then click. The take is cut in two at the playhead, snapped to the grid if Snap is on.',
     dupTrack: 'With takes selected, copies them just before the selection. With tracks selected, copies those tracks.',
-    delSel: 'Removes the selected takes and the selected tracks, including their takes. Turn on Ripple first to close the gap the takes leave. Click Select all tracks first to pick several tracks.',
+    delSel: 'Removes only the take you have selected. Click a take first, or hold Ctrl (or Cmd) or Shift to select several. Track layers are not removed by this button. Turn on Ripple first to close the gap the takes leave.',
     selAll: 'Selects every take on the timeline. Then you can drag them together, duplicate, or delete them.',
     gridSel: 'Choose how big each snap step is. Bar is the widest; 1/32 is the finest. Takes snap to these steps when you move them.',
     snap: 'When ticked, things line up with the grid. Untick it to place takes anywhere.',
