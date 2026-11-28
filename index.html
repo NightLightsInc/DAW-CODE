@@ -124,6 +124,15 @@ kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;font:inherit;co
 .bpointer::before{content:'';position:absolute;top:-9px;left:var(--ax,50%);margin-left:-8px;border:8px solid transparent;border-top:0;border-bottom-color:var(--line)}
 .bpointer.up::before{top:auto;bottom:-9px;border-bottom:0;border-top:8px solid var(--line)}
 .bpointer .scx{float:right;margin-left:8px}
+.lyricpop{position:fixed;z-index:8600;display:flex;flex-direction:column;gap:6px;width:250px;height:230px;min-width:200px;min-height:150px;max-width:min(400px,92vw);max-height:60vh;resize:both;overflow:hidden;background:rgba(14,8,26,.97);border:1px solid var(--line);border-radius:12px;padding:8px;box-sizing:border-box;box-shadow:0 10px 30px rgba(0,0,0,.5);color:var(--text)}
+.lyricpophead{display:flex;gap:6px;align-items:center;cursor:move;user-select:none;touch-action:none}
+.lyricpophead strong{flex:1}
+.lyricpopta,.lyricpoptele{flex:1;min-height:0;width:100%;box-sizing:border-box;font:inherit;color:var(--text);background:#120a1e;border:1px solid var(--line);border-radius:8px;padding:8px}
+.lyricpopta{resize:none}
+.lyricpopta[hidden],.lyricpoptele[hidden]{display:none}
+.lyricpoptele{overflow-y:auto;font-size:20px;line-height:1.6;white-space:pre-wrap}
+.lyricpopbar{display:flex;gap:8px;align-items:center}
+.lyricpopbar input{flex:1}
 .eqfull{position:fixed;inset:0;z-index:9000;background:rgba(8,4,16,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;box-sizing:border-box}
 .eqfullbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
 #eqFullCv{width:min(96vw,1200px);height:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px;touch-action:none;cursor:crosshair;background:#120a1e}
@@ -1316,6 +1325,7 @@ function scheduleMidiWin(hi) {
         if (!inWin) return;
         noteLen = len; noteBend = n.b || 0;
         voice({ ...c.inst, f: midiFreq(n.p + (c.pitch || 0)) }, tr.vol * (n.v ?? 1), n.s, when + Math.max(0, st - from), c.slot, -1, tg);
+        noteLen = null; noteBend = 0;
       });
     });
   });
@@ -3120,11 +3130,8 @@ function micConstraints() { const a = { ...LOW_AUDIO }; if (inDevId) a.deviceId 
 async function populateDevices() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
   let list = await navigator.mediaDevices.enumerateDevices();
-  // Browsers hide device names until the page has microphone permission, so ask once
-  if (list.some(d => d.kind === 'audioinput' && !d.label) && navigator.mediaDevices.getUserMedia) {
-    try { const st = await navigator.mediaDevices.getUserMedia({ audio: true }); st.getTracks().forEach(t => t.stop()); list = await navigator.mediaDevices.enumerateDevices(); }
-    catch (err) { /* refused: names stay hidden, the default still works */ }
-  }
+  const nameBtn = devNameButton();
+  nameBtn.hidden = !list.some(d => d.kind === 'audioinput' && !d.label);
   const fill = (el, kind, cur) => {
     el.innerHTML = ''; el.append(new Option('System default', ''));
     const devs = list.filter(d => d.kind === kind);
@@ -3134,9 +3141,27 @@ async function populateDevices() {
   };
   fill($('inDev'), 'audioinput', inDevId); fill($('outDev'), 'audiooutput', outDevId);
 }
-// Refresh the lists when something is plugged in or unplugged
+// A button, shown only when needed, that asks for permission so the device names can be read
+function devNameButton() {
+  let b = $('showDevNames');
+  if (!b) {
+    b = mkBtn('Show device names', 'showDevNames', false);
+    b.id = 'showDevNames'; b.hidden = true;
+    b.addEventListener('click', async () => {
+      try { const st = await navigator.mediaDevices.getUserMedia({ audio: true }); st.getTracks().forEach(t => t.stop()); }
+      catch (err) { kitMsg('Allow microphone access to see device names. Output still works without it.'); }
+      populateDevices();
+    });
+    $('latPop').prepend(b);
+  }
+  return b;
+}
+// Refresh the lists when something is plugged in or unplugged, without closing a list the person has open
 if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
-  navigator.mediaDevices.addEventListener('devicechange', () => { if ($('latPop') && !$('latPop').hidden) populateDevices(); });
+  navigator.mediaDevices.addEventListener('devicechange', () => {
+    const p = $('latPop'), focused = document.activeElement && (document.activeElement.id === 'inDev' || document.activeElement.id === 'outDev');
+    if (p && !p.hidden && !focused) populateDevices();
+  });
 }
 $('latencyBtn').addEventListener('click', populateDevices);
 $('inDev').addEventListener('change', e => { inDevId = e.target.value; });
@@ -3327,8 +3352,12 @@ $('atBox').append($('atBtn').closest('.atpanel'));
 // ---------- Multi-track split, delete, ripple ----------
 function splitAtPlayhead() {
   init();
-  const keepSel = sel, keepPos = pos, g = gridSec();
-  if ($('snap').checked) pos = Math.round(pos / g) * g;
+  // Stop first so the cut is made where the playhead really is, not where it was a moment ago
+  if (playing) pause();
+  const keepSel = sel, g = gridSec();
+  let at = pos;
+  if ($('snap').checked) at = Math.round(at / g) * g;
+  pos = at;
   const targets = trackSet.size ? [...trackSet] : [sel];
   let done = 0;
   targets.forEach(ti => {
@@ -3337,8 +3366,8 @@ function splitAtPlayhead() {
     if (!hit) return;
     sel = ti; selClip = null; splitOne(); done++;
   });
-  sel = keepSel; pos = keepPos;
-  render(); updateClock();
+  sel = keepSel;
+  render(); updateClock(); placePlayhead();
   kitMsg(done ? `Split ${done} take${done === 1 ? '' : 's'} at the playhead` : 'Nothing to split. Put the playhead inside a take on the selected track');
 }
 function removeClip(c) {
@@ -5072,6 +5101,103 @@ function applyBeatPreset(b) {
   setInterval(tick, 400);
   window.addEventListener('resize', tick);
   tick();
+})();
+// ---------- Lyrics: pop-out notepad, and teleprompter that scrolls with Play ----------
+(function lyricsPopout() {
+  const det = $('fLyrics'), folderTa = $('lyricsBox');
+  if (!det || !folderTa) return;
+  const openBtn = mkBtn('Pop out lyrics', 'lyricsPopOut', false);
+  det.querySelector('.fitems').append(openBtn);
+  let pop = null, teleOn = true, speed = 40, teleY = 0, wasPlaying = false, lastT = 0;
+  let ta = null, tele = null, teleB = null, lab = null;
+
+  const saveLyrics = v => { try { localStorage.setItem('nl-lyrics', v); } catch (err) {} };
+  const showTele = () => { if (tele) { tele.textContent = folderTa.value || 'Your lyrics appear here when you press Play.'; } };
+  const setMode = on => {
+    teleOn = on;
+    if (!pop) return;
+    ta.hidden = on; tele.hidden = !on;
+    teleB.textContent = on ? 'Edit lyrics' : 'Teleprompter';
+    teleB.setAttribute('aria-pressed', String(on));
+    if (on) { showTele(); tele.scrollTop = teleY; }
+  };
+
+  function open() {
+    if (pop) { pop.hidden = false; return; }
+    const box = document.createElement('div');
+    box.id = 'lyricsPop'; box.className = 'lyricpop';
+    box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Lyrics notepad');
+    const head = document.createElement('div'); head.className = 'lyricpophead';
+    const title = document.createElement('strong'); title.textContent = 'Lyrics';
+    teleB = mkBtn('Edit lyrics', 'lyricsTeleBtn', false);
+    const closeB = mkBtn('Close', 'lyricsPopClose', false);
+    head.append(title, teleB, closeB);
+    ta = document.createElement('textarea'); ta.className = 'lyricpopta'; ta.placeholder = 'Write or paste lyrics here.';
+    ta.value = folderTa.value;
+    tele = document.createElement('div'); tele.className = 'lyricpoptele'; tele.hidden = true;
+    const bar = document.createElement('div'); bar.className = 'lyricpopbar';
+    lab = document.createElement('span'); lab.className = 'ctl'; lab.textContent = 'Speed ' + speed + ' px/s';
+    const sl = document.createElement('input'); sl.type = 'range'; sl.min = '10'; sl.max = '200'; sl.step = '5'; sl.value = String(speed);
+    sl.id = 'lyricsSpeed'; sl.setAttribute('aria-label', 'Teleprompter speed');
+    sl.addEventListener('input', () => { speed = +sl.value; lab.textContent = 'Speed ' + speed + ' px/s'; });
+    bar.append(lab, sl);
+    box.append(head, ta, tele, bar);
+    document.body.append(box);
+    pop = box;
+    // Start at a comfortable size, near the right edge of the screen
+    box.style.left = Math.max(12, window.innerWidth - 280) + 'px';
+    box.style.top = '120px';
+    setMode(teleOn);
+
+    ta.addEventListener('input', () => { folderTa.value = ta.value; saveLyrics(ta.value); if (teleOn) showTele(); });
+    teleB.addEventListener('click', () => setMode(!teleOn));
+    closeB.addEventListener('click', () => { box.remove(); pop = null; ta = tele = teleB = lab = null; });
+
+    // Drag by the header; it can go anywhere on screen, and nothing else is blocked
+    let drag = null;
+    head.addEventListener('pointerdown', e => {
+      if (e.target.closest('button')) return;
+      const r = box.getBoundingClientRect();
+      drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, id: e.pointerId };
+      head.setPointerCapture(e.pointerId);
+    });
+    head.addEventListener('pointermove', e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const w = box.offsetWidth, h = box.offsetHeight;
+      const left = Math.max(-w + 80, Math.min(e.clientX - drag.dx, window.innerWidth - 80));
+      const top = Math.max(0, Math.min(e.clientY - drag.dy, window.innerHeight - 40));
+      box.style.left = left + 'px'; box.style.top = top + 'px';
+    });
+    const endDrag = () => { drag = null; };
+    head.addEventListener('pointerup', endDrag);
+    head.addEventListener('pointercancel', endDrag);
+  }
+
+  // Keep the folder box and the notepad showing the same words
+  folderTa.addEventListener('input', () => {
+    if (pop) { ta.value = folderTa.value; if (teleOn) showTele(); }
+  });
+
+  // Teleprompter: while the song plays, the text scrolls at the chosen speed; it goes back to the top when playback starts from the beginning
+  const loop = now => {
+    if (pop && teleOn && tele) {
+      if (playing && !wasPlaying && pos0 < 0.05) { teleY = 0; tele.scrollTop = 0; }
+      if (playing) {
+        const dt = Math.min(0.1, Math.max(0, (now - lastT) / 1000));
+        teleY += speed * dt;
+        tele.scrollTop = teleY;
+      } else {
+        teleY = tele.scrollTop;
+      }
+    }
+    wasPlaying = playing; lastT = now;
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+
+  const btn = openBtn;
+  btn.addEventListener('click', open);
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && pop && e.target === document.body) { pop.remove(); pop = null; ta = tele = teleB = lab = null; } });
 })();
 </script>
 </body>
